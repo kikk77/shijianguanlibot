@@ -1,0 +1,45 @@
+{
+  "name": "telegram-channel-bot",
+  "version": "1.0.0",
+  "description": "Telegram频道管理机器人 - 自动更新帖子和排班管理",
+  "main": "app.js",
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=8.0.0"
+  },
+  "scripts": {
+    "start": "node app.js",
+    "dev": "nodemon app.js",
+    "test": "echo \"暂无测试\" && exit 0",
+    "lint": "echo \"暂无代码检查\" && exit 0"
+  },
+  "dependencies": {
+    "better-sqlite3": "^8.7.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.5.0",
+    "express": "^4.18.2",
+    "node-telegram-bot-api": "^0.61.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1"
+  },
+  "keywords": [
+    "telegram",
+    "bot", 
+    "channel",
+    "booking",
+    "schedule",
+    "admin",
+    "railway"
+  ],
+  "author": "Channel Bot Team",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/your-username/telegram-channel-bot.git"
+  },
+  "bugs": {
+    "url": "https://github.com/your-username/telegram-channel-bot/issues"
+  },
+  "homepage": "https://github.com/your-username/telegram-channel-bot#readme"
+} 

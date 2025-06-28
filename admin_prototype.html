@@ -1,0 +1,1598 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Telegram频道管理后台</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        header {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+            text-align: center;
+        }
+
+        h1 {
+            color: #333;
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            color: #666;
+            font-size: 1.1em;
+        }
+
+        .dashboard {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 30px;
+        }
+
+        .card {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+            transition: transform 0.3s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+        }
+
+        .card h2 {
+            color: #333;
+            font-size: 1.8em;
+            margin-bottom: 20px;
+            border-bottom: 3px solid #667eea;
+            padding-bottom: 10px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+            color: #555;
+        }
+
+        input, textarea, select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e6ed;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s ease;
+        }
+
+        input:focus, textarea:focus, select:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #5a6fd8;
+            transform: translateY(-2px);
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #5a6268;
+        }
+
+        .btn-success {
+            background: #28a745;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #218838;
+        }
+
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #c82333;
+        }
+
+        .btn-warning {
+            background: #ffc107;
+            color: #212529;
+        }
+
+        .btn-warning:hover {
+            background: #e0a800;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 20px;
+            margin-bottom: 25px;
+        }
+
+        .stat-item {
+            text-align: center;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            border-radius: 10px;
+            color: white;
+        }
+
+        .stat-number {
+            display: block;
+            font-size: 2.5em;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            font-size: 0.9em;
+            opacity: 0.9;
+        }
+
+        .hourly-slots-container {
+            margin-top: 20px;
+        }
+
+        .hourly-slots-container h3 {
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 1.3em;
+        }
+
+        .hourly-slots-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .hour-slot {
+            padding: 12px;
+            border: 2px solid #e0e6ed;
+            border-radius: 8px;
+            text-align: center;
+            transition: all 0.3s ease;
+            background: white;
+        }
+
+        .hour-slot.available {
+            border-color: #28a745;
+            background: #f8fff8;
+        }
+
+        .hour-slot.booked {
+            border-color: #ffc107;
+            background: #fffef8;
+        }
+
+        .hour-slot.disabled {
+            border-color: #dc3545;
+            background: #fff8f8;
+        }
+
+        .hour-time {
+            font-weight: bold;
+            margin-bottom: 5px;
+            color: #333;
+            font-size: 0.9em;
+        }
+
+        .hour-status {
+            margin-bottom: 8px;
+            font-size: 0.8em;
+            color: #666;
+        }
+
+        .hour-btn {
+            font-size: 11px;
+            padding: 4px 8px;
+            width: 100%;
+        }
+
+        .weekly-schedule-container {
+            margin-top: 20px;
+        }
+
+        .weekly-schedule-container h3 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 1.3em;
+        }
+
+        .schedule-list {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+
+        .day-schedule {
+            padding: 15px;
+            border: 1px solid #e0e6ed;
+            border-radius: 8px;
+            background: white;
+        }
+
+        .day-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .day-date {
+            font-weight: bold;
+            font-size: 1.1em;
+            color: #333;
+        }
+
+        .day-actions {
+            display: flex;
+            gap: 5px;
+        }
+
+        .btn-small {
+            padding: 4px 8px;
+            font-size: 11px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        .time-slots-simple {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 10px;
+            flex-wrap: wrap;
+        }
+
+        .time-slot-btn {
+            padding: 8px 12px;
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            background: #f5f5f5;
+            color: #666;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+
+        .time-slot-btn.active {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+
+        .time-slot-btn:hover {
+            transform: translateY(-1px);
+        }
+
+        .day-preview {
+            color: #666;
+            font-size: 0.9em;
+        }
+
+        .day-preview strong {
+            color: #333;
+        }
+
+        .day-status {
+            padding: 10px;
+            border-radius: 6px;
+            text-align: center;
+            font-weight: bold;
+            font-size: 1.1em;
+        }
+
+        .day-status.day-full {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f1a2a8;
+        }
+
+        .day-status.day-rest {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #b8dce2;
+        }
+
+        .channel-text-preview {
+            margin-top: 30px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            border: 2px dashed #667eea;
+        }
+
+        .channel-text-preview h4 {
+            color: #333;
+            margin-bottom: 15px;
+        }
+
+        .channel-text-content {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            border-left: 4px solid #667eea;
+        }
+
+        .channel-schedule-text {
+            font-family: monospace;
+            line-height: 1.6;
+            color: #333;
+            white-space: pre-line;
+        }
+
+        /* 更新通知样式 */
+        .update-notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+            max-width: 350px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            animation: slideIn 0.3s ease-out;
+        }
+
+        .update-notification.update-success {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+
+        .update-notification.update-error {
+            background: #f8d7da;
+            border: 1px solid #f1a2a8;
+            color: #721c24;
+        }
+
+        .update-notification.update-loading {
+            background: #cce7ff;
+            border: 1px solid #99d3ff;
+            color: #004085;
+        }
+
+        .notification-content {
+            padding: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .notification-content span {
+            flex: 1;
+            font-weight: 500;
+            white-space: pre-line;
+        }
+
+        .notification-content button {
+            background: none;
+            border: none;
+            font-size: 18px;
+            cursor: pointer;
+            padding: 0;
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            color: inherit;
+        }
+
+        .notification-content button:hover {
+            background: rgba(0, 0, 0, 0.1);
+        }
+
+        .spinner {
+            width: 16px;
+            height: 16px;
+            border: 2px solid transparent;
+            border-top: 2px solid currentColor;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .time-slots-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .time-slot {
+            padding: 15px;
+            border: 2px solid #e0e6ed;
+            border-radius: 10px;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        .time-slot.available {
+            border-color: #28a745;
+            background: #f8fff8;
+        }
+
+        .time-slot.booked {
+            border-color: #ffc107;
+            background: #fffef8;
+        }
+
+        .time-slot.disabled {
+            border-color: #dc3545;
+            background: #fff8f8;
+        }
+
+        .time-slot h4 {
+            margin-bottom: 10px;
+            color: #333;
+        }
+
+        .time-slot p {
+            margin-bottom: 5px;
+            color: #666;
+            font-size: 0.9em;
+        }
+
+        .bookings-list {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .booking-item {
+            padding: 15px;
+            border: 1px solid #e0e6ed;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            background: #f8f9fa;
+        }
+
+        .booking-item h4 {
+            color: #333;
+            margin-bottom: 8px;
+        }
+
+        .booking-item p {
+            color: #666;
+            margin-bottom: 3px;
+            font-size: 0.9em;
+        }
+
+        .status-badge {
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.8em;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+
+        .status-pending {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .status-confirmed {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .status-cancelled {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .channel-preview {
+            border: 2px dashed #667eea;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+            background: #f8f9ff;
+        }
+
+        .preview-images-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .preview-images-grid img {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+            border-radius: 8px;
+        }
+
+        .channel-preview img {
+            max-width: 100%;
+            height: 200px;
+            object-fit: cover;
+            border-radius: 8px;
+            margin-bottom: 15px;
+        }
+
+        .channel-preview .caption {
+            white-space: pre-wrap;
+            margin-bottom: 15px;
+            padding: 15px;
+            background: white;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+        }
+
+        .channel-preview .jump-button {
+            display: inline-block;
+            padding: 10px 20px;
+            background: #0088cc;
+            color: white;
+            text-decoration: none;
+            border-radius: 20px;
+            font-weight: bold;
+        }
+
+        .nav-tabs {
+            display: flex;
+            border-bottom: 2px solid #e0e6ed;
+            margin-bottom: 20px;
+        }
+
+        .nav-tab {
+            padding: 12px 24px;
+            background: none;
+            border: none;
+            border-bottom: 3px solid transparent;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            color: #666;
+            transition: all 0.3s ease;
+        }
+
+        .nav-tab.active {
+            color: #667eea;
+            border-bottom-color: #667eea;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        @media (max-width: 768px) {
+            .dashboard {
+                grid-template-columns: 1fr;
+            }
+            
+            .stats {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            
+            .time-slots-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>⏰ Telegram时间表管理工具</h1>
+            <p class="subtitle">专业时间排班管理 • 自动发送时间信息 • 快速状态更新</p>
+        </header>
+
+        <div class="dashboard">
+            <!-- 时间信息管理 -->
+            <section class="card" style="grid-column: 1 / -1;">
+                <h2>⏰ 时间信息发送管理</h2>
+                
+                <div style="padding: 20px; background: #e8f5e8; border-radius: 8px; margin-bottom: 20px;">
+                    <h3>🎯 功能说明</h3>
+                    <p><strong>📅 专注时间表管理</strong>：本工具专门用于管理和发布时间排班信息</p>
+                    <p><strong>🖼️ 图片内容</strong>：频道的图片和详细内容请手动发布</p>
+                    <p><strong>⚡ 快速更新</strong>：点击按钮即可发送最新时间信息到频道</p>
+                    <p><strong>🔄 自动清理</strong>：发送新时间信息时会删除上一条，保持频道整洁</p>
+                </div>
+                
+                <div class="time-message-preview" id="timeMessagePreview">
+                    <h4>📱 当前时间信息预览:</h4>
+                    <div class="time-message-content" style="background: white; padding: 15px; border-radius: 8px; margin-bottom: 15px; border-left: 4px solid #667eea;">
+                        <div class="time-message-text" id="timeMessageText" style="white-space: pre-line; font-family: monospace; line-height: 1.6;">📅 <strong>艾米娜 - 近期排班安排</strong>
+
+12.19 (周四): 14/17/18/19点
+12.20 (周五): 14/17/18/19/20点  
+12.21 (周六): 满 (有鸽更新)
+12.22 (周日): 休息
+12.23 (周一): 17/18/19点
+12.24 (周二): 14/17/18/19/20/21点
+12.25 (周三): 14/18/19点
+
+⏰ 更新时间: 2024-12-19 15:30</div>
+                    </div>
+                    <div class="buttons" style="margin-top: 15px;">
+                        <button onclick="sendTimeMessage()" class="btn btn-primary">📤 发送时间信息到频道</button>
+                        <button onclick="refreshTimePreview()" class="btn btn-secondary">🔄 刷新预览</button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 数据统计 -->
+            <section class="card">
+                <h2>📊 实时数据统计</h2>
+                <div class="stats">
+                    <div class="stat-item">
+                        <span class="stat-number" id="totalBookings">127</span>
+                        <span class="stat-label">总预约数</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-number" id="pendingBookings">8</span>
+                        <span class="stat-label">待确认</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-number" id="todayBookings">23</span>
+                        <span class="stat-label">今日预约</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-number" id="availableSlots">16</span>
+                        <span class="stat-label">可用时段</span>
+                    </div>
+                </div>
+                <button onclick="refreshStats()" class="btn btn-secondary">🔄 刷新数据</button>
+            </section>
+
+            <!-- 服务提供者管理 -->
+            <section class="card">
+                <h2>👥 服务提供者管理</h2>
+                
+                <div class="form-group">
+                    <label for="providerName">服务者姓名:</label>
+                    <input type="text" id="providerName" placeholder="输入服务者姓名">
+                </div>
+                
+                <div class="form-group">
+                    <label for="providerDesc">服务描述:</label>
+                    <textarea id="providerDesc" rows="3" placeholder="输入服务描述"></textarea>
+                </div>
+                
+                <div style="margin-bottom: 20px;">
+                    <button onclick="addProvider()" class="btn btn-primary">➕ 添加服务者</button>
+                </div>
+
+                <div id="providersList">
+                    <div style="padding: 15px; border: 1px solid #e0e6ed; border-radius: 8px; margin-bottom: 10px; background: #f8f9fa;">
+                        <h4>👩‍💼 艾米娜</h4>
+                        <p>英国🇬🇧 真实05年，高素质服务</p>
+                        <p><span class="status-badge" style="background: #d4edda; color: #155724;">活跃</span></p>
+                        <button class="btn btn-warning" style="font-size: 12px; padding: 6px 12px;">暂停服务</button>
+                        <button class="btn btn-danger" style="font-size: 12px; padding: 6px 12px;">删除</button>
+                    </div>
+                    
+                    <div style="padding: 15px; border: 1px solid #e0e6ed; border-radius: 8px; margin-bottom: 10px; background: #f8f9fa;">
+                        <h4>👩‍💼 莉莉安</h4>
+                        <p>法国气质，优雅迷人</p>
+                        <p><span class="status-badge" style="background: #d4edda; color: #155724;">活跃</span></p>
+                        <button class="btn btn-warning" style="font-size: 12px; padding: 6px 12px;">暂停服务</button>
+                        <button class="btn btn-danger" style="font-size: 12px; padding: 6px 12px;">删除</button>
+                    </div>
+                    
+                    <div style="padding: 15px; border: 1px solid #e0e6ed; border-radius: 8px; margin-bottom: 10px; background: #f8f9fa;">
+                        <h4>👩‍💼 安娜贝儿</h4>
+                        <p>俄罗斯美女，身材完美</p>
+                        <p><span class="status-badge" style="background: #fff3cd; color: #856404;">暂停</span></p>
+                        <button class="btn btn-success" style="font-size: 12px; padding: 6px 12px;">恢复服务</button>
+                        <button class="btn btn-danger" style="font-size: 12px; padding: 6px 12px;">删除</button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 时间段管理 -->
+            <section class="card" style="grid-column: 1 / -1;">
+                <h2>⏰ 连续多天时间段管理</h2>
+                
+                <div style="display: flex; gap: 15px; margin-bottom: 20px; flex-wrap: wrap; align-items: flex-end;">
+                    <div class="form-group" style="flex: 1; min-width: 150px;">
+                        <label for="slotProvider">选择老师:</label>
+                        <select id="slotProvider" onchange="generateWeeklySchedule()">
+                            <!-- 动态加载服务提供者 -->
+                        </select>
+                    </div>
+                    <button onclick="generateWeeklySchedule()" class="btn btn-primary" style="height: 48px;">🔄 刷新7天排班</button>
+                    <button onclick="refreshTimePreview()" class="btn btn-success" style="height: 48px;">📝 更新时间预览</button>
+                </div>
+                
+                <div class="weekly-schedule-container">
+                    <h3>📅 艾米娜 - 连续7天排班表</h3>
+                    
+                    <div class="schedule-list" id="scheduleList">
+                        <div class="day-schedule">
+                            <div class="day-header">
+                                <span class="day-date">12.19 (周四)</span>
+                                <div class="day-actions">
+                                    <button onclick="setDayStatus('2024-12-19', 'full')" class="btn-small btn-danger">设为满</button>
+                                    <button onclick="setDayStatus('2024-12-19', 'rest')" class="btn-small btn-secondary">设为休息</button>
+                                    <button onclick="setDayStatus('2024-12-19', 'normal')" class="btn-small btn-primary">正常排班</button>
+                                </div>
+                            </div>
+                            <div class="time-slots-simple">
+                                <button onclick="toggleTimeSlot('2024-12-19', 14)" class="time-slot-btn active">14</button>
+                                <button onclick="toggleTimeSlot('2024-12-19', 17)" class="time-slot-btn active">17</button>
+                                <button onclick="toggleTimeSlot('2024-12-19', 18)" class="time-slot-btn active">18</button>
+                                <button onclick="toggleTimeSlot('2024-12-19', 19)" class="time-slot-btn active">19</button>
+                                <button onclick="toggleTimeSlot('2024-12-19', 20)" class="time-slot-btn">20</button>
+                                <button onclick="toggleTimeSlot('2024-12-19', 21)" class="time-slot-btn">21</button>
+                            </div>
+                            <div class="day-preview">预览: <strong>14/17/18/19点</strong></div>
+                        </div>
+                        
+                        <div class="day-schedule">
+                            <div class="day-header">
+                                <span class="day-date">12.20 (周五)</span>
+                                <div class="day-actions">
+                                    <button onclick="setDayStatus('2024-12-20', 'full')" class="btn-small btn-danger">设为满</button>
+                                    <button onclick="setDayStatus('2024-12-20', 'rest')" class="btn-small btn-secondary">设为休息</button>
+                                    <button onclick="setDayStatus('2024-12-20', 'normal')" class="btn-small btn-primary">正常排班</button>
+                                </div>
+                            </div>
+                            <div class="time-slots-simple">
+                                <button onclick="toggleTimeSlot('2024-12-20', 14)" class="time-slot-btn active">14</button>
+                                <button onclick="toggleTimeSlot('2024-12-20', 17)" class="time-slot-btn active">17</button>
+                                <button onclick="toggleTimeSlot('2024-12-20', 18)" class="time-slot-btn active">18</button>
+                                <button onclick="toggleTimeSlot('2024-12-20', 19)" class="time-slot-btn active">19</button>
+                                <button onclick="toggleTimeSlot('2024-12-20', 20)" class="time-slot-btn active">20</button>
+                                <button onclick="toggleTimeSlot('2024-12-20', 21)" class="time-slot-btn">21</button>
+                            </div>
+                            <div class="day-preview">预览: <strong>14/17/18/19/20点</strong></div>
+                        </div>
+                        
+                        <div class="day-schedule">
+                            <div class="day-header">
+                                <span class="day-date">12.21 (周六)</span>
+                                <div class="day-actions">
+                                    <button onclick="setDayStatus('2024-12-21', 'full')" class="btn-small btn-danger">设为满</button>
+                                    <button onclick="setDayStatus('2024-12-21', 'rest')" class="btn-small btn-secondary">设为休息</button>
+                                    <button onclick="setDayStatus('2024-12-21', 'normal')" class="btn-small btn-primary">正常排班</button>
+                                </div>
+                            </div>
+                            <div class="day-status day-full">满 (有鸽更新)</div>
+                        </div>
+                        
+                        <div class="day-schedule">
+                            <div class="day-header">
+                                <span class="day-date">12.22 (周日)</span>
+                                <div class="day-actions">
+                                    <button onclick="setDayStatus('2024-12-22', 'full')" class="btn-small btn-danger">设为满</button>
+                                    <button onclick="setDayStatus('2024-12-22', 'rest')" class="btn-small btn-secondary">设为休息</button>
+                                    <button onclick="setDayStatus('2024-12-22', 'normal')" class="btn-small btn-primary">正常排班</button>
+                                </div>
+                            </div>
+                            <div class="day-status day-rest">休息</div>
+                        </div>
+                        
+                        <div class="day-schedule">
+                            <div class="day-header">
+                                <span class="day-date">12.23 (周一)</span>
+                                <div class="day-actions">
+                                    <button onclick="setDayStatus('2024-12-23', 'full')" class="btn-small btn-danger">设为满</button>
+                                    <button onclick="setDayStatus('2024-12-23', 'rest')" class="btn-small btn-secondary">设为休息</button>
+                                    <button onclick="setDayStatus('2024-12-23', 'normal')" class="btn-small btn-primary">正常排班</button>
+                                </div>
+                            </div>
+                            <div class="time-slots-simple">
+                                <button onclick="toggleTimeSlot('2024-12-23', 14)" class="time-slot-btn">14</button>
+                                <button onclick="toggleTimeSlot('2024-12-23', 17)" class="time-slot-btn active">17</button>
+                                <button onclick="toggleTimeSlot('2024-12-23', 18)" class="time-slot-btn active">18</button>
+                                <button onclick="toggleTimeSlot('2024-12-23', 19)" class="time-slot-btn active">19</button>
+                                <button onclick="toggleTimeSlot('2024-12-23', 20)" class="time-slot-btn">20</button>
+                                <button onclick="toggleTimeSlot('2024-12-23', 21)" class="time-slot-btn">21</button>
+                            </div>
+                            <div class="day-preview">预览: <strong>17/18/19点</strong></div>
+                        </div>
+                        
+                        <div class="day-schedule">
+                            <div class="day-header">
+                                <span class="day-date">12.24 (周二)</span>
+                                <div class="day-actions">
+                                    <button onclick="setDayStatus('2024-12-24', 'full')" class="btn-small btn-danger">设为满</button>
+                                    <button onclick="setDayStatus('2024-12-24', 'rest')" class="btn-small btn-secondary">设为休息</button>
+                                    <button onclick="setDayStatus('2024-12-24', 'normal')" class="btn-small btn-primary">正常排班</button>
+                                </div>
+                            </div>
+                            <div class="time-slots-simple">
+                                <button onclick="toggleTimeSlot('2024-12-24', 14)" class="time-slot-btn active">14</button>
+                                <button onclick="toggleTimeSlot('2024-12-24', 17)" class="time-slot-btn active">17</button>
+                                <button onclick="toggleTimeSlot('2024-12-24', 18)" class="time-slot-btn active">18</button>
+                                <button onclick="toggleTimeSlot('2024-12-24', 19)" class="time-slot-btn active">19</button>
+                                <button onclick="toggleTimeSlot('2024-12-24', 20)" class="time-slot-btn active">20</button>
+                                <button onclick="toggleTimeSlot('2024-12-24', 21)" class="time-slot-btn active">21</button>
+                            </div>
+                            <div class="day-preview">预览: <strong>14/17/18/19/20/21点</strong></div>
+                        </div>
+                        
+                        <div class="day-schedule">
+                            <div class="day-header">
+                                <span class="day-date">12.25 (周三)</span>
+                                <div class="day-actions">
+                                    <button onclick="setDayStatus('2024-12-25', 'full')" class="btn-small btn-danger">设为满</button>
+                                    <button onclick="setDayStatus('2024-12-25', 'rest')" class="btn-small btn-secondary">设为休息</button>
+                                    <button onclick="setDayStatus('2024-12-25', 'normal')" class="btn-small btn-primary">正常排班</button>
+                                </div>
+                            </div>
+                            <div class="time-slots-simple">
+                                <button onclick="toggleTimeSlot('2024-12-25', 14)" class="time-slot-btn active">14</button>
+                                <button onclick="toggleTimeSlot('2024-12-25', 17)" class="time-slot-btn">17</button>
+                                <button onclick="toggleTimeSlot('2024-12-25', 18)" class="time-slot-btn active">18</button>
+                                <button onclick="toggleTimeSlot('2024-12-25', 19)" class="time-slot-btn active">19</button>
+                                <button onclick="toggleTimeSlot('2024-12-25', 20)" class="time-slot-btn">20</button>
+                                <button onclick="toggleTimeSlot('2024-12-25', 21)" class="time-slot-btn">21</button>
+                            </div>
+                            <div class="day-preview">预览: <strong>14/18/19点</strong></div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="channel-text-preview" id="channelTextPreview">
+                    <h4>📱 频道发布文本预览:</h4>
+                    <div class="channel-text-content">
+                        <div class="channel-schedule-text">
+12.19 (周四): 14/17/18/19点
+12.20 (周五): 14/17/18/19/20点  
+12.21 (周六): 满 (有鸽更新)
+12.22 (周日): 休息
+12.23 (周一): 17/18/19点
+12.24 (周二): 14/17/18/19/20/21点
+12.25 (周三): 14/18/19点
+                        </div>
+                    </div>
+                    <button onclick="copyChannelText()" class="btn btn-success">📋 复制到剪贴板</button>
+                </div>
+                
+                <div style="margin-top: 20px; padding: 15px; background: #f8f9fa; border-radius: 8px;">
+                    <p><strong>💡 操作说明:</strong></p>
+                    <p>• <strong>⚡ 专注时间管理</strong>：点击任何按钮都会更新时间表信息</p>
+                    <p>• <strong>📅 时间段切换</strong>：点击数字按钮切换开放状态（蓝色=开放，灰色=关闭）</p>
+                    <p>• <strong>🎯 一键状态设置</strong>：使用"设为满/休息/正常排班"快速设置整天状态</p>
+                    <p>• <strong>📤 发送时间信息</strong>：点击"发送时间信息到频道"自动发送纯时间表信息</p>
+                    <p>• <strong>🔄 自动清理</strong>：发送新时间时会删除旧时间消息，保持频道整洁</p>
+                    <p>• <strong>📱 简洁显示</strong>：时间用数字表示(14/17/18/19点)，客人一目了然</p>
+                </div>
+            </section>
+
+            <!-- 预约管理 -->
+            <section class="card" style="grid-column: 1 / -1;">
+                <h2>📋 预约管理</h2>
+                
+                <div style="display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap;">
+                    <button onclick="filterBookings('all')" class="btn btn-secondary">全部预约</button>
+                    <button onclick="filterBookings('pending')" class="btn btn-warning">待确认</button>
+                    <button onclick="filterBookings('confirmed')" class="btn btn-success">已确认</button>
+                    <button onclick="filterBookings('cancelled')" class="btn btn-danger">已取消</button>
+                </div>
+
+                <div class="bookings-list" id="bookingsList">
+                    <div class="booking-item">
+                        <h4>🆔 预约编号: #1001</h4>
+                        <p><strong>👤 客户:</strong> @davidchen (ID: 123456789)</p>
+                        <p><strong>👩‍💼 服务者:</strong> 艾米娜</p>
+                        <p><strong>📅 预约时间:</strong> 2024-12-19 14:00-15:00</p>
+                        <p><strong>💰 价格:</strong> 2500p</p>
+                        <p><strong>📱 联系方式:</strong> 135****8888</p>
+                        <p><strong>💬 备注:</strong> 指定英语服务</p>
+                        <p><strong>🕐 创建时间:</strong> 2024-12-18 15:30</p>
+                        <p><strong>📊 状态:</strong> <span class="status-badge status-pending">待确认</span></p>
+                        <div style="margin-top: 10px;">
+                            <button onclick="confirmBooking(1001)" class="btn btn-success" style="font-size: 12px; padding: 6px 12px;">确认预约</button>
+                            <button onclick="cancelBooking(1001)" class="btn btn-danger" style="font-size: 12px; padding: 6px 12px;">取消预约</button>
+                            <button onclick="contactCustomer(123456789)" class="btn btn-primary" style="font-size: 12px; padding: 6px 12px;">联系客户</button>
+                        </div>
+                    </div>
+                    
+                    <div class="booking-item">
+                        <h4>🆔 预约编号: #1002</h4>
+                        <p><strong>👤 客户:</strong> @mikewang (ID: 987654321)</p>
+                        <p><strong>👩‍💼 服务者:</strong> 莉莉安</p>
+                        <p><strong>📅 预约时间:</strong> 2024-12-19 19:00-20:00</p>
+                        <p><strong>💰 价格:</strong> 2800p</p>
+                        <p><strong>📱 联系方式:</strong> 138****6666</p>
+                        <p><strong>💬 备注:</strong> 要求法语交流</p>
+                        <p><strong>🕐 创建时间:</strong> 2024-12-18 16:15</p>
+                        <p><strong>📊 状态:</strong> <span class="status-badge status-confirmed">已确认</span></p>
+                        <div style="margin-top: 10px;">
+                            <button onclick="completeBooking(1002)" class="btn btn-success" style="font-size: 12px; padding: 6px 12px;">完成服务</button>
+                            <button onclick="contactCustomer(987654321)" class="btn btn-primary" style="font-size: 12px; padding: 6px 12px;">联系客户</button>
+                        </div>
+                    </div>
+                    
+                    <div class="booking-item">
+                        <h4>🆔 预约编号: #1003</h4>
+                        <p><strong>👤 客户:</strong> @alexli (ID: 555666777)</p>
+                        <p><strong>👩‍💼 服务者:</strong> 艾米娜</p>
+                        <p><strong>📅 预约时间:</strong> 2024-12-18 10:00-11:00</p>
+                        <p><strong>💰 价格:</strong> 2500p</p>
+                        <p><strong>📱 联系方式:</strong> 139****9999</p>
+                        <p><strong>💬 备注:</strong> 客户临时取消</p>
+                        <p><strong>🕐 创建时间:</strong> 2024-12-17 20:45</p>
+                        <p><strong>📊 状态:</strong> <span class="status-badge status-cancelled">已取消</span></p>
+                        <div style="margin-top: 10px;">
+                            <button onclick="contactCustomer(555666777)" class="btn btn-primary" style="font-size: 12px; padding: 6px 12px;">联系客户</button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </div>
+
+    <script>
+        // 设置当前日期
+        document.getElementById('slotDate').value = new Date().toISOString().split('T')[0];
+
+        // 标签切换
+        function switchTab(tabId) {
+            // 隐藏所有标签内容
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // 移除所有标签的活跃状态
+            document.querySelectorAll('.nav-tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // 显示选中的标签内容
+            document.getElementById(tabId).classList.add('active');
+            
+            // 激活选中的标签
+            event.target.classList.add('active');
+        }
+
+        // 发送时间信息到频道
+        async function sendTimeMessage() {
+            if (!confirm('确定要发送时间信息到频道吗？\n\n这将会：\n• 发送纯时间排班信息\n• 删除上一条时间消息\n• 保持频道整洁')) {
+                return;
+            }
+            
+            showUpdateNotification('📤 正在发送时间信息到频道...', 'loading');
+            
+            try {
+                const providerId = document.getElementById('slotProvider').value;
+                const providerName = document.getElementById('slotProvider').selectedOptions[0].text;
+                
+                const requestData = {
+                    providerId: providerId,
+                    providerName: providerName,
+                    scheduleData: scheduleData,
+                    timestamp: Date.now()
+                };
+                
+                const response = await fetch('/api/send-time-message', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${localStorage.getItem('adminToken') || 'admin-session'}`
+                    },
+                    body: JSON.stringify(requestData)
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok && result.success) {
+                    showUpdateNotification(`✅ 时间信息发送成功！\n\n📤 消息ID: ${result.messageId}\n🔄 已删除旧消息`, 'success');
+                } else {
+                    throw new Error(result.error || '发送失败');
+                }
+                
+            } catch (error) {
+                showUpdateNotification(`❌ 发送时间信息失败: ${error.message}`, 'error');
+            }
+        }
+
+        // 刷新时间预览
+        function refreshTimePreview() {
+            const timeText = generateTimeText();
+            document.getElementById('timeMessageText').innerHTML = timeText;
+            alert('🔄 时间预览已更新！\n\n可以在上方查看最新的时间信息内容。');
+        }
+
+        // 生成时间信息文本
+        function generateTimeText() {
+            const providerId = document.getElementById('slotProvider').value;
+            const providerName = document.getElementById('slotProvider').selectedOptions[0].text;
+            const now = new Date();
+            const timeStr = `${now.getFullYear()}-${(now.getMonth()+1).toString().padStart(2,'0')}-${now.getDate().toString().padStart(2,'0')} ${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}`;
+            
+            let timeText = `📅 <strong>${providerName} - 近期排班安排</strong>\n\n`;
+            
+            Object.keys(scheduleData).forEach(date => {
+                const data = scheduleData[date];
+                const dateObj = new Date(date);
+                const month = dateObj.getMonth() + 1;
+                const day = dateObj.getDate();
+                const weekdays = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
+                const weekday = weekdays[dateObj.getDay()];
+                
+                const dateStr = `${month}.${day} (${weekday})`;
+                
+                if (data.status === 'full') {
+                    timeText += `${dateStr}: 满 (有鸽更新)\n`;
+                } else if (data.status === 'rest') {
+                    timeText += `${dateStr}: 休息\n`;
+                } else if (data.slots.length > 0) {
+                    timeText += `${dateStr}: ${data.slots.join('/')}点\n`;
+                } else {
+                    timeText += `${dateStr}: 暂无安排\n`;
+                }
+            });
+            
+            timeText += `\n⏰ 更新时间: ${timeStr}`;
+            
+            return timeText;
+        }
+
+        // 保存排班数据到数据库
+        async function saveScheduleData(date, status, slots) {
+            try {
+                const providerId = document.getElementById('slotProvider').value;
+                
+                const response = await fetch('/api/update-schedule', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${localStorage.getItem('adminToken') || 'admin-session'}`
+                    },
+                    body: JSON.stringify({
+                        providerId: providerId,
+                        date: date,
+                        status: status,
+                        slots: slots
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (!response.ok || !result.success) {
+                    console.error('保存排班数据失败:', result.error);
+                }
+                
+            } catch (error) {
+                console.error('保存排班数据失败:', error);
+            }
+        }
+
+        // 加载服务提供者列表
+        async function loadProviders() {
+            try {
+                const response = await fetch('/api/get-providers', {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('adminToken') || 'admin-session'}`
+                    }
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok && result.success) {
+                    const select = document.getElementById('slotProvider');
+                    const currentValue = select.value;
+                    
+                    // 清空并重新填充选项
+                    select.innerHTML = '';
+                    
+                    result.providers.forEach(provider => {
+                        const option = document.createElement('option');
+                        option.value = provider.id;
+                        option.textContent = provider.name;
+                        select.appendChild(option);
+                    });
+                    
+                    // 尝试保持之前的选择
+                    if (currentValue && document.querySelector(`option[value="${currentValue}"]`)) {
+                        select.value = currentValue;
+                    }
+                    
+                } else {
+                    console.error('加载服务提供者失败:', result.error);
+                }
+                
+            } catch (error) {
+                console.error('加载服务提供者失败:', error);
+            }
+        }
+
+        // 刷新统计数据
+        async function refreshStats() {
+            try {
+                showUpdateNotification('🔄 正在刷新统计数据...', 'loading');
+                
+                const response = await fetch('/api/get-stats', {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('adminToken') || 'admin-session'}`
+                    }
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok && result.success) {
+                    document.getElementById('totalBookings').textContent = result.stats.totalBookings;
+                    document.getElementById('pendingBookings').textContent = result.stats.pendingBookings;
+                    document.getElementById('todayBookings').textContent = result.stats.todayBookings;
+                    document.getElementById('availableSlots').textContent = result.stats.availableSlots;
+                    
+                    showUpdateNotification('✅ 统计数据已刷新！', 'success');
+                } else {
+                    throw new Error(result.error || '获取统计数据失败');
+                }
+                
+            } catch (error) {
+                showUpdateNotification(`❌ 刷新统计数据失败: ${error.message}`, 'error');
+            }
+        }
+
+        // 添加服务提供者
+        async function addProvider() {
+            const name = document.getElementById('providerName').value;
+            const desc = document.getElementById('providerDesc').value;
+            
+            if (!name) {
+                alert('请输入服务者姓名！');
+                return;
+            }
+            
+            try {
+                showUpdateNotification('🔄 正在添加服务者...', 'loading');
+                
+                const response = await fetch('/api/add-provider', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${localStorage.getItem('adminToken') || 'admin-session'}`
+                    },
+                    body: JSON.stringify({
+                        name: name,
+                        description: desc
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok && result.success) {
+                    showUpdateNotification(`✅ ${result.message}`, 'success');
+                    
+                    // 清空表单
+                    document.getElementById('providerName').value = '';
+                    document.getElementById('providerDesc').value = '';
+                    
+                    // 刷新服务者列表和下拉选择
+                    await loadProviders();
+                    
+                } else {
+                    throw new Error(result.error || '添加服务者失败');
+                }
+                
+            } catch (error) {
+                showUpdateNotification(`❌ 添加服务者失败: ${error.message}`, 'error');
+            }
+        }
+
+        // 存储排班数据
+        let scheduleData = {
+            '2024-12-19': { status: 'normal', slots: [14, 17, 18, 19] },
+            '2024-12-20': { status: 'normal', slots: [14, 17, 18, 19, 20] },
+            '2024-12-21': { status: 'full', slots: [] },
+            '2024-12-22': { status: 'rest', slots: [] },
+            '2024-12-23': { status: 'normal', slots: [17, 18, 19] },
+            '2024-12-24': { status: 'normal', slots: [14, 17, 18, 19, 20, 21] },
+            '2024-12-25': { status: 'normal', slots: [14, 18, 19] }
+        };
+
+        // 生成7天排班表
+        async function generateWeeklySchedule() {
+            const providerId = document.getElementById('slotProvider').value;
+            const provider = document.getElementById('slotProvider').selectedOptions[0].text;
+            
+            try {
+                showUpdateNotification('🔄 正在加载排班数据...', 'loading');
+                
+                const response = await fetch(`/api/get-schedule-data/${providerId}`, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('adminToken') || 'admin-session'}`
+                    }
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok && result.success) {
+                    // 更新全局排班数据
+                    scheduleData = result.scheduleData;
+                    
+                    // 更新页面标题
+                    document.querySelector('.weekly-schedule-container h3').textContent = `📅 ${provider} - 连续7天排班表`;
+                    
+                    // 刷新时间预览
+                    refreshTimePreview();
+                    updateAvailableSlotsCount();
+                    
+                    showUpdateNotification(`✅ 已加载 ${provider} 的7天排班表！`, 'success');
+                    
+                } else {
+                    throw new Error(result.error || '加载排班数据失败');
+                }
+                
+            } catch (error) {
+                showUpdateNotification(`❌ 加载排班数据失败: ${error.message}`, 'error');
+            }
+        }
+
+        // 设置某天的状态
+        function setDayStatus(date, status) {
+            // 查找包含该日期的day-schedule元素
+            const daySchedules = document.querySelectorAll('.day-schedule');
+            let daySchedule;
+            
+            daySchedules.forEach(schedule => {
+                const buttons = schedule.querySelectorAll(`[onclick*="${date}"]`);
+                if (buttons.length > 0) {
+                    daySchedule = schedule;
+                }
+            });
+            
+            if (!daySchedule) return;
+            
+            const timeSlotsDiv = daySchedule.querySelector('.time-slots-simple');
+            const dayStatusDiv = daySchedule.querySelector('.day-status');
+            const previewDiv = daySchedule.querySelector('.day-preview');
+            
+            // 更新数据
+            scheduleData[date].status = status;
+            
+            if (status === 'full') {
+                scheduleData[date].slots = [];
+                // 隐藏时间段按钮，显示"满"状态
+                if (timeSlotsDiv) timeSlotsDiv.style.display = 'none';
+                if (previewDiv) previewDiv.style.display = 'none';
+                
+                if (!dayStatusDiv) {
+                    const statusEl = document.createElement('div');
+                    statusEl.className = 'day-status day-full';
+                    statusEl.textContent = '满 (有鸽更新)';
+                    daySchedule.appendChild(statusEl);
+                } else {
+                    dayStatusDiv.className = 'day-status day-full';
+                    dayStatusDiv.textContent = '满 (有鸽更新)';
+                    dayStatusDiv.style.display = 'block';
+                }
+                
+            } else if (status === 'rest') {
+                scheduleData[date].slots = [];
+                // 隐藏时间段按钮，显示"休息"状态
+                if (timeSlotsDiv) timeSlotsDiv.style.display = 'none';
+                if (previewDiv) previewDiv.style.display = 'none';
+                
+                if (!dayStatusDiv) {
+                    const statusEl = document.createElement('div');
+                    statusEl.className = 'day-status day-rest';
+                    statusEl.textContent = '休息';
+                    daySchedule.appendChild(statusEl);
+                } else {
+                    dayStatusDiv.className = 'day-status day-rest';
+                    dayStatusDiv.textContent = '休息';
+                    dayStatusDiv.style.display = 'block';
+                }
+                
+            } else if (status === 'normal') {
+                // 显示时间段按钮，隐藏状态
+                if (timeSlotsDiv) timeSlotsDiv.style.display = 'flex';
+                if (previewDiv) previewDiv.style.display = 'block';
+                if (dayStatusDiv) dayStatusDiv.style.display = 'none';
+                
+                // 恢复默认时间段
+                scheduleData[date].slots = [17, 18, 19];
+                updateDayPreview(date);
+            }
+            
+            const statusText = status === 'full' ? '满' : status === 'rest' ? '休息' : '正常排班';
+            
+            // 保存到数据库
+            saveScheduleData(date, status, scheduleData[date].slots);
+            
+            // 更新时间预览
+            refreshTimePreview();
+            updateAvailableSlotsCount();
+        }
+
+        // 切换时间段状态
+        function toggleTimeSlot(date, hour) {
+            const button = document.querySelector(`[onclick*="${date}"][onclick*="${hour}"]`);
+            
+            if (!scheduleData[date]) {
+                scheduleData[date] = { status: 'normal', slots: [] };
+            }
+            
+            const slots = scheduleData[date].slots;
+            const hourIndex = slots.indexOf(hour);
+            
+            if (hourIndex > -1) {
+                // 已存在，移除
+                slots.splice(hourIndex, 1);
+                button.classList.remove('active');
+            } else {
+                // 不存在，添加
+                slots.push(hour);
+                slots.sort((a, b) => a - b);
+                button.classList.add('active');
+            }
+            
+            // 更新预览
+            updateDayPreview(date);
+            
+            // 保存到数据库
+            saveScheduleData(date, scheduleData[date].status, scheduleData[date].slots);
+            
+            // 更新时间预览
+            refreshTimePreview();
+            updateAvailableSlotsCount();
+            
+            const action = hourIndex > -1 ? '关闭' : '开放';
+            showUpdateNotification(`✅ ${hour}点时段已${action}\n📝 时间预览已更新`, 'success');
+        }
+
+
+
+        // 显示更新通知
+        function showUpdateNotification(message, type = 'info') {
+            // 移除旧通知
+            const oldNotification = document.querySelector('.update-notification');
+            if (oldNotification) {
+                oldNotification.remove();
+            }
+            
+            // 创建新通知
+            const notification = document.createElement('div');
+            notification.className = `update-notification update-${type}`;
+            notification.innerHTML = `
+                <div class="notification-content">
+                    ${type === 'loading' ? '<div class="spinner"></div>' : ''}
+                    <span>${message}</span>
+                    ${type !== 'loading' ? '<button onclick="this.parentElement.parentElement.remove()">×</button>' : ''}
+                </div>
+            `;
+            
+            document.body.appendChild(notification);
+            
+            // 自动移除（除了loading类型）
+            if (type !== 'loading') {
+                setTimeout(() => {
+                    notification.remove();
+                }, 5000);
+            }
+        }
+
+
+
+        // 更新某天的预览
+        function updateDayPreview(date) {
+            // 查找包含该日期的day-schedule元素
+            const daySchedules = document.querySelectorAll('.day-schedule');
+            let daySchedule;
+            
+            daySchedules.forEach(schedule => {
+                const buttons = schedule.querySelectorAll(`[onclick*="${date}"]`);
+                if (buttons.length > 0) {
+                    daySchedule = schedule;
+                }
+            });
+            
+            if (!daySchedule) return;
+            
+            const previewDiv = daySchedule.querySelector('.day-preview');
+            
+            if (previewDiv && scheduleData[date] && scheduleData[date].status === 'normal') {
+                const slots = scheduleData[date].slots;
+                if (slots.length > 0) {
+                    previewDiv.innerHTML = `预览: <strong>${slots.join('/')}点</strong>`;
+                } else {
+                    previewDiv.innerHTML = '预览: <strong>暂无开放时段</strong>';
+                }
+            }
+        }
+
+        // 生成频道文本
+        function generateChannelText() {
+            const scheduleTextDiv = document.querySelector('.channel-schedule-text');
+            let channelText = '';
+            
+            Object.keys(scheduleData).forEach(date => {
+                const data = scheduleData[date];
+                const dateObj = new Date(date);
+                const month = dateObj.getMonth() + 1;
+                const day = dateObj.getDate();
+                const weekdays = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
+                const weekday = weekdays[dateObj.getDay()];
+                
+                const dateStr = `${month}.${day} (${weekday})`;
+                
+                if (data.status === 'full') {
+                    channelText += `${dateStr}: 满 (有鸽更新)\n`;
+                } else if (data.status === 'rest') {
+                    channelText += `${dateStr}: 休息\n`;
+                } else if (data.slots.length > 0) {
+                    channelText += `${dateStr}: ${data.slots.join('/')}点\n`;
+                } else {
+                    channelText += `${dateStr}: 暂无安排\n`;
+                }
+            });
+            
+            scheduleTextDiv.textContent = channelText.trim();
+            return channelText.trim();
+        }
+
+        // 复制频道文本到剪贴板
+        function copyChannelText() {
+            const channelText = generateChannelText();
+            
+            if (navigator.clipboard) {
+                navigator.clipboard.writeText(channelText).then(() => {
+                    alert('✅ 频道文本已复制到剪贴板！\n\n可以直接粘贴到Telegram频道中。');
+                });
+            } else {
+                // 兜底方案
+                const textArea = document.createElement('textarea');
+                textArea.value = channelText;
+                document.body.appendChild(textArea);
+                textArea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textArea);
+                alert('✅ 频道文本已复制到剪贴板！\n\n可以直接粘贴到Telegram频道中。');
+            }
+        }
+
+        // 更新可用时间段数量
+        function updateAvailableSlotsCount() {
+            let totalSlots = 0;
+            Object.values(scheduleData).forEach(data => {
+                if (data.status === 'normal') {
+                    totalSlots += data.slots.length;
+                }
+            });
+            document.getElementById('availableSlots').textContent = totalSlots;
+        }
+
+        // 查看预约详情
+        function viewBookingDetails(hour) {
+            if (hour) {
+                alert(`📋 预约详情 - ${hour}:00-${hour+1}:00\n\n👤 客户: @davidchen\n💰 价格: 2500p\n📱 联系: 135****8888\n💬 备注: 指定英语服务\n🕐 预约时间: 2024-12-19 ${hour}:00-${hour+1}:00`);
+            } else {
+                alert('📋 预约详情\n\n这里会显示该时间段的预约详情，包括客户信息、联系方式等。');
+            }
+        }
+
+        // 过滤预约
+        function filterBookings(status) {
+            alert(`📋 筛选预约: ${status}\n\n实际使用时，这里会根据状态筛选显示预约列表。`);
+        }
+
+        // 确认预约
+        function confirmBooking(bookingId) {
+            if (confirm(`确认预约 #${bookingId} 吗？`)) {
+                alert(`✅ 预约 #${bookingId} 已确认！\n\n系统将自动通知客户，并更新频道帖子。`);
+            }
+        }
+
+        // 取消预约
+        function cancelBooking(bookingId) {
+            if (confirm(`确认取消预约 #${bookingId} 吗？`)) {
+                alert(`❌ 预约 #${bookingId} 已取消！\n\n系统将自动通知客户，并释放时间段。`);
+            }
+        }
+
+        // 完成预约
+        function completeBooking(bookingId) {
+            if (confirm(`标记预约 #${bookingId} 为已完成吗？`)) {
+                alert(`✅ 预约 #${bookingId} 已完成！\n\n服务已完成，感谢客户的选择。`);
+            }
+        }
+
+        // 联系客户
+        function contactCustomer(userId) {
+            alert(`📞 联系客户\n\n实际使用时，这里会打开Telegram与客户的对话窗口。\n客户ID: ${userId}`);
+        }
+
+        // 页面加载完成后的初始化
+        document.addEventListener('DOMContentLoaded', async function() {
+            console.log('🚀 Telegram时间表管理工具已加载完成！');
+            
+            try {
+                // 加载服务提供者列表
+                await loadProviders();
+                
+                // 加载统计数据
+                await refreshStats();
+                
+                // 如果有服务提供者，加载第一个的排班数据
+                const select = document.getElementById('slotProvider');
+                if (select.options.length > 0) {
+                    await generateWeeklySchedule();
+                }
+                
+            } catch (error) {
+                console.error('初始化数据加载失败:', error);
+                showUpdateNotification('⚠️ 部分数据加载失败，请刷新页面重试', 'error');
+            }
+        });
+    </script>
+</body>
+</html> 
