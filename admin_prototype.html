@@ -1020,6 +1020,18 @@
 
         // 发送时间信息到频道
         async function sendTimeMessage() {
+            // 验证必需数据
+            const providerSelect = document.getElementById('slotProvider');
+            if (!providerSelect || !providerSelect.value) {
+                alert('⚠️ 请先选择服务提供者！');
+                return;
+            }
+            
+            if (!scheduleData || Object.keys(scheduleData).length === 0) {
+                alert('⚠️ 请先生成时间表数据！');
+                return;
+            }
+            
             if (!confirm('确定要发送时间信息到频道吗？\n\n这将会：\n• 发送纯时间排班信息\n• 删除上一条时间消息\n• 保持频道整洁')) {
                 return;
             }
@@ -1027,8 +1039,9 @@
             showUpdateNotification('📤 正在发送时间信息到频道...', 'loading');
             
             try {
-                const providerId = document.getElementById('slotProvider').value;
-                const providerName = document.getElementById('slotProvider').selectedOptions[0].text;
+                const providerId = providerSelect.value;
+                const selectedOption = providerSelect.selectedOptions[0];
+                const providerName = selectedOption ? selectedOption.text : `服务者${providerId}`;
                 
                 const requestData = {
                     providerId: providerId,
@@ -1036,6 +1049,8 @@
                     scheduleData: scheduleData,
                     timestamp: Date.now()
                 };
+                
+                console.log('📤 发送请求数据:', requestData);
                 
                 const response = await fetch('/api/send-time-message', {
                     method: 'POST',
@@ -1047,6 +1062,7 @@
                 });
                 
                 const result = await response.json();
+                console.log('📤 响应结果:', result);
                 
                 if (response.ok && result.success) {
                     showUpdateNotification(`✅ 时间信息发送成功！\n\n📤 消息ID: ${result.messageId}\n🔄 已删除旧消息`, 'success');
@@ -1055,6 +1071,7 @@
                 }
                 
             } catch (error) {
+                console.error('发送失败:', error);
                 showUpdateNotification(`❌ 发送时间信息失败: ${error.message}`, 'error');
             }
         }
@@ -1062,14 +1079,28 @@
         // 刷新时间预览
         function refreshTimePreview() {
             const timeText = generateTimeText();
-            document.getElementById('timeMessageText').innerHTML = timeText;
-            alert('🔄 时间预览已更新！\n\n可以在上方查看最新的时间信息内容。');
+            const timeMessageElement = document.getElementById('timeMessageText');
+            if (timeMessageElement) {
+                timeMessageElement.innerHTML = timeText;
+            }
+            
+            if (timeText.includes('⚠️')) {
+                alert('⚠️ ' + timeText);
+            } else {
+                showUpdateNotification('🔄 时间预览已更新！\n\n可以在上方查看最新的时间信息内容。', 'success');
+            }
         }
 
         // 生成时间信息文本
         function generateTimeText() {
-            const providerId = document.getElementById('slotProvider').value;
-            const providerName = document.getElementById('slotProvider').selectedOptions[0].text;
+            const providerSelect = document.getElementById('slotProvider');
+            if (!providerSelect || !providerSelect.value) {
+                return '⚠️ 请先选择服务提供者';
+            }
+            
+            const providerId = providerSelect.value;
+            const selectedOption = providerSelect.selectedOptions[0];
+            const providerName = selectedOption ? selectedOption.text : `服务者${providerId}`;
             const now = new Date();
             const timeStr = `${now.getFullYear()}-${(now.getMonth()+1).toString().padStart(2,'0')}-${now.getDate().toString().padStart(2,'0')} ${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}`;
             
