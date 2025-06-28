@@ -92,29 +92,35 @@ class OfficialBot {
         const chatId = msg.chat.id;
         const userId = msg.from.id.toString();
         
-        // 检查用户是否已注册
-        const existingUser = UserManager.getUser(userId);
-        if (existingUser) {
-            await this.bot.sendMessage(chatId, `
+        console.log(`📝 开始注册流程 - 用户ID: ${userId}, 聊天ID: ${chatId}`);
+        
+        try {
+            // 检查用户是否已注册
+            console.log(`🔍 检查用户是否已注册: ${userId}`);
+            const existingUser = UserManager.getUser(userId);
+            console.log(`📊 用户查询结果:`, existingUser);
+            
+            if (existingUser) {
+                await this.bot.sendMessage(chatId, `
 ✅ *您已经注册过了！*
 
 当前状态：${existingUser.status === 'active' ? '正常' : '未激活'}
 注册时间：${new Date(existingUser.created_at).toLocaleString('zh-CN')}
 
 直接发送 /panel 打开管理面板，或点击下方按钮：
-            `, {
-                parse_mode: 'Markdown',
-                reply_markup: JSON.stringify({
-                    inline_keyboard: [
-                        [{ text: '📋 打开管理面板', callback_data: 'action_panel' }]
-                    ]
-                })
-            });
-            return;
-        }
-        
-        // 开始注册流程
-        await this.bot.sendMessage(chatId, `
+                `, {
+                    parse_mode: 'Markdown',
+                    reply_markup: JSON.stringify({
+                        inline_keyboard: [
+                            [{ text: '📋 打开管理面板', callback_data: 'action_panel' }]
+                        ]
+                    })
+                });
+                return;
+            }
+            
+            // 开始注册流程
+            await this.bot.sendMessage(chatId, `
 🔧 *开始注册流程*
 
 请按以下步骤完成注册：
@@ -130,12 +136,18 @@ class OfficialBot {
 配置您的服务提供者信息
 
 请先发送您的频道信息 👇
-        `, {
-            parse_mode: 'Markdown'
-        });
-        
-        // 标记用户状态为注册中
-        this.setUserState(userId, 'registering_channel');
+            `, {
+                parse_mode: 'Markdown'
+            });
+            
+            // 标记用户状态为注册中
+            this.setUserState(userId, 'registering_channel');
+            
+        } catch (error) {
+            console.error(`❌ 注册处理失败 - 用户ID: ${userId}:`, error);
+            console.error('错误堆栈:', error.stack);
+            await this.bot.sendMessage(chatId, '❌ 注册过程中出现错误，请稍后重试或联系管理员');
+        }
     }
     
     async handlePanel(msg) {

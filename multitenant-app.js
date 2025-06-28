@@ -134,11 +134,12 @@ function extendOfficialBot() {
                 return;
             }
             
-            // 其他回调交给原始处理器
-            await originalHandleCallback(callbackQuery);
+            // 其他回调交给原始处理器，确保this上下文正确
+            await originalHandleCallback.call(this, callbackQuery);
             
         } catch (error) {
             console.error('处理回调失败:', error);
+            console.error('错误详情:', error.stack);
             await this.bot.sendMessage(chatId, '❌ 操作失败，请稍后重试');
         }
     };
