@@ -1,15 +1,16 @@
 {
-  "name": "telegram-channel-bot",
-  "version": "1.0.0",
-  "description": "Telegram频道管理机器人 - 自动更新帖子和排班管理",
-  "main": "app.js",
+  "name": "multitenant-telegram-bot",
+  "version": "2.0.0",
+  "description": "多租户Telegram频道管理机器人 - 支持1000个用户独立管理时间表",
+  "main": "multitenant-app.js",
   "engines": {
     "node": ">=18.0.0",
     "npm": ">=8.0.0"
   },
   "scripts": {
-    "start": "node app.js",
-    "dev": "nodemon app.js",
+    "start": "node multitenant-app.js",
+    "dev": "nodemon multitenant-app.js",
+    "old": "node app.js",
     "test": "echo \"暂无测试\" && exit 0",
     "lint": "echo \"暂无代码检查\" && exit 0"
   },
@@ -29,17 +30,20 @@
     "channel",
     "booking",
     "schedule",
+    "multitenant",
     "admin",
-    "railway"
+    "railway",
+    "mobile",
+    "inline-keyboard"
   ],
-  "author": "Channel Bot Team",
+  "author": "MultiTenant Bot Team",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/your-username/telegram-channel-bot.git"
+    "url": "https://github.com/your-username/multitenant-telegram-bot.git"
   },
   "bugs": {
-    "url": "https://github.com/your-username/telegram-channel-bot/issues"
+    "url": "https://github.com/your-username/multitenant-telegram-bot/issues"
   },
-  "homepage": "https://github.com/your-username/telegram-channel-bot#readme"
+  "homepage": "https://github.com/your-username/multitenant-telegram-bot#readme"
 } 

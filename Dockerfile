@@ -1,9 +1,10 @@
+# 使用官方Node.js 18 Alpine镜像
 FROM node:18-alpine
 
 # 设置工作目录
 WORKDIR /app
 
-# 安装系统依赖 (better-sqlite3需要)
+# 安装系统依赖
 RUN apk add --no-cache \
     python3 \
     make \
@@ -13,25 +14,27 @@ RUN apk add --no-cache \
 # 复制package文件
 COPY package*.json ./
 
-# 安装npm依赖
-RUN npm install --production && npm cache clean --force
+# 安装Node.js依赖
+RUN npm ci --only=production && \
+    npm cache clean --force
 
-# 复制应用代码
+# 复制应用源码
 COPY . .
 
-# 创建数据目录并设置权限
-RUN mkdir -p /app/data && \
-    chown -R node:node /app
+# 创建数据目录
+RUN mkdir -p /app/data
 
-# 切换到非root用户
-USER node
-
-# 健康检查
-HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD wget --no-verbose --tries=1 --spider http://localhost:3000/health || exit 1
+# 设置环境变量
+ENV NODE_ENV=production
+ENV DB_PATH=/app/data
+ENV PORT=3000
 
 # 暴露端口
 EXPOSE 3000
+
+# 健康检查
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+    CMD node -e "require('http').get('http://localhost:3000/health', (res) => { process.exit(res.statusCode === 200 ? 0 : 1) })"
 
 # 启动命令
 CMD ["npm", "start"] 
