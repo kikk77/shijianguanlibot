@@ -36,7 +36,7 @@ async function startApplication() {
         
         // 1. 初始化数据库
         console.log('📦 初始化数据库...');
-        initDatabase();
+        await initDatabase();
         
         // 2. 设置管理员API路由
         console.log('🔧 设置API路由...');

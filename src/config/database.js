@@ -5,18 +5,82 @@ const fs = require('fs');
 let db = null;
 
 // 初始化数据库
-function initDatabase() {
-    try {
-        // 确保数据目录存在
-        const dataDir = path.dirname(process.env.DB_PATH || './data/bot.db');
-        if (!fs.existsSync(dataDir)) {
-            fs.mkdirSync(dataDir, { recursive: true });
+async function initDatabase() {
+    // 等待Volume挂载完成的重试机制
+    const maxRetries = 10;
+    const retryDelay = 2000; // 2秒
+    
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+        try {
+            console.log(`🔄 尝试初始化数据库 (第${attempt}次)...`);
+            
+            // 优先使用 /app/data 路径 (Railway Volume)
+            let dbPath = process.env.DB_PATH || '/app/data/bot.db';
+            const dataDir = path.dirname(dbPath);
+            
+            console.log(`📁 尝试数据库路径: ${dbPath}`);
+            console.log(`📂 数据目录: ${dataDir}`);
+            
+            // 检查目录状态
+            try {
+                const stats = fs.statSync(dataDir);
+                console.log(`📊 目录状态: 存在=${stats.isDirectory()}, 权限=${stats.mode.toString(8)}`);
+            } catch (error) {
+                console.log(`📂 目录不存在，尝试创建: ${dataDir}`);
+            }
+            
+            // 确保数据目录存在
+            if (!fs.existsSync(dataDir)) {
+                fs.mkdirSync(dataDir, { recursive: true, mode: 0o755 });
+                console.log(`✅ 创建数据目录: ${dataDir}`);
+            }
+            
+            // 测试目录写入权限
+            const testFile = path.join(dataDir, 'test-write.tmp');
+            fs.writeFileSync(testFile, 'test');
+            fs.unlinkSync(testFile);
+            console.log(`✅ 目录写入权限测试通过: ${dataDir}`);
+            
+            // 连接数据库
+            db = new Database(dbPath);
+            console.log(`✅ 数据库连接成功: ${dbPath}`);
+            break;
+            
+        } catch (error) {
+            console.error(`❌ 第${attempt}次尝试失败:`, error.message);
+            
+            if (attempt === maxRetries) {
+                // 最后一次尝试失败，使用临时路径
+                console.log(`🚨 所有尝试失败，使用临时数据库路径`);
+                try {
+                    const tempPath = '/tmp/bot.db';
+                    const tempDir = path.dirname(tempPath);
+                    
+                    if (!fs.existsSync(tempDir)) {
+                        fs.mkdirSync(tempDir, { recursive: true });
+                    }
+                    
+                    db = new Database(tempPath);
+                    console.log(`⚠️  使用临时数据库: ${tempPath}`);
+                    break;
+                } catch (tempError) {
+                    console.error('❌ 临时数据库也无法创建:', tempError);
+                    throw new Error(`数据库初始化完全失败: ${tempError.message}`);
+                }
+            }
+            
+            // 等待后重试
+            console.log(`⏳ 等待${retryDelay/1000}秒后重试...`);
+            await new Promise(resolve => setTimeout(resolve, retryDelay));
         }
-        
-        // 连接数据库
-        const dbPath = process.env.DB_PATH || './data/bot.db';
-        db = new Database(dbPath);
-        
+    }
+    
+    // 确保数据库已成功连接
+    if (!db) {
+        throw new Error('数据库初始化失败：无法建立连接');
+    }
+    
+    try {
         // 启用外键约束
         db.pragma('foreign_keys = ON');
         
@@ -26,7 +90,8 @@ function initDatabase() {
         // 初始化默认数据
         initDefaultData();
         
-        console.log('✅ 数据库初始化完成:', dbPath);
+        const finalDbPath = process.env.DB_PATH || '/app/data/bot.db';
+        console.log('✅ 数据库初始化完成:', finalDbPath);
         
     } catch (error) {
         console.error('❌ 数据库初始化失败:', error);
