@@ -52,13 +52,23 @@ async function startApplication() {
         // 2. 启动官方机器人
         if (process.env.OFFICIAL_BOT_TOKEN) {
             console.log('🤖 启动官方管理机器人...');
-            officialBot = new OfficialBot(process.env.OFFICIAL_BOT_TOKEN);
-            scheduleManager = new TelegramScheduleManager(officialBot.bot);
-            
-            // 扩展官方机器人的回调处理
-            extendOfficialBot();
+            try {
+                officialBot = new OfficialBot(process.env.OFFICIAL_BOT_TOKEN);
+                scheduleManager = new TelegramScheduleManager(officialBot.bot);
+                
+                // 扩展官方机器人的回调处理
+                extendOfficialBot();
+                
+                console.log('✅ 官方机器人启动成功');
+            } catch (botError) {
+                console.error('❌ 官方机器人启动失败:', botError.message);
+                console.log('⚠️  系统将以纯API模式运行');
+                officialBot = null;
+                scheduleManager = null;
+            }
         } else {
-            console.log('⚠️  未配置官方机器人Token，跳过机器人启动');
+            console.log('⚠️  未配置官方机器人Token (OFFICIAL_BOT_TOKEN)');
+            console.log('⚠️  系统将以纯API模式运行');
         }
         
         // 3. 设置API路由
@@ -91,6 +101,14 @@ async function startApplication() {
 
 // 扩展官方机器人的回调处理
 function extendOfficialBot() {
+    if (!officialBot) {
+        console.log('⚠️  officialBot 为 null，跳过扩展功能');
+        return;
+    }
+    
+    // 添加服务提供者面板方法
+    officialBot.showProvidersPanel = showProvidersPanel;
+    
     const originalHandleCallback = officialBot.handleCallback.bind(officialBot);
     
     officialBot.handleCallback = async function(callbackQuery) {
@@ -161,7 +179,9 @@ async function handleScheduleCallback(chatId, userId, data) {
             break;
             
         default:
-            await officialBot.bot.sendMessage(chatId, '❌ 未知操作');
+            if (officialBot) {
+                await officialBot.bot.sendMessage(chatId, '❌ 未知操作');
+            }
             break;
     }
 }
@@ -187,7 +207,9 @@ async function handleProviderCallback(chatId, userId, data) {
             break;
             
         default:
-            await officialBot.bot.sendMessage(chatId, '❌ 未知操作');
+            if (officialBot) {
+                await officialBot.bot.sendMessage(chatId, '❌ 未知操作');
+            }
             break;
     }
 }
@@ -229,14 +251,15 @@ async function showProvidersPanel(chatId, userId) {
         { text: '⬅️ 返回主面板', callback_data: 'action_panel' }
     ]);
     
-    await officialBot.bot.sendMessage(chatId, panelText, {
-        parse_mode: 'Markdown',
-        reply_markup: JSON.stringify(keyboard)
-    });
+    if (officialBot) {
+        await officialBot.bot.sendMessage(chatId, panelText, {
+            parse_mode: 'Markdown',
+            reply_markup: JSON.stringify(keyboard)
+        });
+    }
 }
 
-// 扩展官方机器人的服务提供者面板方法
-officialBot.showProvidersPanel = showProvidersPanel;
+// 扩展官方机器人的服务提供者面板方法将在机器人初始化后设置
 
 // 设置API路由
 function setupAPI() {
@@ -401,6 +424,23 @@ function setupAPI() {
         }
     });
     
+    // 健康检查API
+    app.get('/api/health', (req, res) => {
+        const healthStatus = {
+            status: 'ok',
+            timestamp: new Date().toISOString(),
+            services: {
+                database: 'ok',
+                bot: officialBot ? 'ok' : 'not_configured',
+                scheduler: scheduleManager ? 'ok' : 'not_configured'
+            },
+            version: '2.0.0',
+            environment: process.env.NODE_ENV || 'development'
+        };
+        
+        res.json(healthStatus);
+    });
+
     // 生成频道文本API
     app.get('/api/users/:userId/providers/:providerId/channel-text', (req, res) => {
         try {
