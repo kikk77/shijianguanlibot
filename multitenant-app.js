@@ -50,10 +50,11 @@ async function startApplication() {
         await initMultiTenantDatabase();
         
         // 2. 启动官方机器人
-        if (process.env.OFFICIAL_BOT_TOKEN) {
+        const botToken = process.env.OFFICIAL_BOT_TOKEN || process.env.BOT_TOKEN;
+        if (botToken) {
             console.log('🤖 启动官方管理机器人...');
             try {
-                officialBot = new OfficialBot(process.env.OFFICIAL_BOT_TOKEN);
+                officialBot = new OfficialBot(botToken);
                 scheduleManager = new TelegramScheduleManager(officialBot.bot);
                 
                 // 扩展官方机器人的回调处理
@@ -67,7 +68,7 @@ async function startApplication() {
                 scheduleManager = null;
             }
         } else {
-            console.log('⚠️  未配置官方机器人Token (OFFICIAL_BOT_TOKEN)');
+            console.log('⚠️  未配置官方机器人Token (OFFICIAL_BOT_TOKEN 或 BOT_TOKEN)');
             console.log('⚠️  系统将以纯API模式运行');
         }
         
@@ -80,6 +81,7 @@ async function startApplication() {
         
         // 5. 启动HTTP服务器
         app.listen(PORT, () => {
+            const currentBotToken = process.env.OFFICIAL_BOT_TOKEN || process.env.BOT_TOKEN;
             console.log('');
             console.log('🎉 ================================');
             console.log('🎉  多租户系统启动成功！');
@@ -87,7 +89,7 @@ async function startApplication() {
             console.log(`🌐 HTTP服务: http://localhost:${PORT}`);
             console.log(`🔧 API地址: http://localhost:${PORT}/api/`);
             console.log(`💾 数据库: ${process.env.DB_PATH || './data'}/multitenant_bot.db`);
-            console.log(`🤖 官方机器人: ${process.env.OFFICIAL_BOT_TOKEN ? '已启动' : '未配置'}`);
+            console.log(`🤖 官方机器人: ${currentBotToken ? '已启动' : '未配置'}`);
             console.log(`👥 支持用户数: 1000+`);
             console.log('🎉 ================================');
             console.log('');
