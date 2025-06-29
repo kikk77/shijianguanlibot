@@ -439,43 +439,55 @@ class TelegramScheduleManager {
     // 处理所有排班相关回调
     async handleCallback(chatId, userId, data) {
         try {
+            console.log(`🔧 处理排班回调: ${data}`);
             const parts = data.split('_');
             const action = parts[1];
-            const providerId = parts[2];
             
             switch (action) {
                 case 'day':
-                    // schedule_day_providerId_dateStr
-                    const dateStr = parts[3];
-                    await this.showDaySchedule(chatId, userId, providerId, dateStr);
+                    // schedule_day_provider_1751175564567_2025-06-29
+                    const providerId_day = parts.slice(2, -1).join('_');
+                    const dateStr = parts[parts.length - 1];
+                    console.log(`📅 日期回调: providerId=${providerId_day}, dateStr=${dateStr}`);
+                    await this.showDaySchedule(chatId, userId, providerId_day, dateStr);
                     break;
                     
                 case 'time':
-                    // schedule_time_providerId_dateStr_hour
-                    const timeDate = parts[3];
-                    const hour = parts[4];
-                    await this.handleTimeClick(chatId, userId, providerId, timeDate, hour);
+                    // schedule_time_provider_1751175564567_2025-06-29_14
+                    const providerId_time = parts.slice(2, -2).join('_');
+                    const timeDate = parts[parts.length - 2];
+                    const hour = parts[parts.length - 1];
+                    console.log(`⏰ 时间回调: providerId=${providerId_time}, date=${timeDate}, hour=${hour}`);
+                    await this.handleTimeClick(chatId, userId, providerId_time, timeDate, hour);
                     break;
                     
                 case 'dayop':
-                    // schedule_dayop_providerId_dateStr_operation
-                    const opDate = parts[3];
-                    const operation = parts[4];
-                    await this.handleDayOperation(chatId, userId, providerId, opDate, operation);
+                    // schedule_dayop_provider_1751175564567_2025-06-29_allopen
+                    const providerId_dayop = parts.slice(2, -2).join('_');
+                    const opDate = parts[parts.length - 2];
+                    const operation = parts[parts.length - 1];
+                    console.log(`🔧 日期操作回调: providerId=${providerId_dayop}, date=${opDate}, op=${operation}`);
+                    await this.handleDayOperation(chatId, userId, providerId_dayop, opDate, operation);
                     break;
                     
                 case 'text':
-                    // schedule_text_providerId
-                    await this.generateChannelText(chatId, userId, providerId);
+                    // schedule_text_provider_1751175564567
+                    const providerId_text = parts.slice(2).join('_');
+                    console.log(`📝 文本生成回调: providerId=${providerId_text}`);
+                    await this.generateChannelText(chatId, userId, providerId_text);
                     break;
                     
                 case 'sync':
-                    // schedule_sync_providerId
-                    await this.syncToChannel(chatId, userId, providerId);
+                    // schedule_sync_provider_1751175564567
+                    const providerId_sync = parts.slice(2).join('_');
+                    console.log(`🔄 同步回调: providerId=${providerId_sync}`);
+                    await this.syncToChannel(chatId, userId, providerId_sync);
                     break;
                     
                 case 'copy':
-                    // schedule_copy_providerId
+                    // schedule_copy_provider_1751175564567
+                    const providerId_copy = parts.slice(2).join('_');
+                    console.log(`📋 复制回调: providerId=${providerId_copy}`);
                     await this.bot.answerCallbackQuery(chatId, {
                         text: '📋 文本已复制到剪贴板',
                         show_alert: false

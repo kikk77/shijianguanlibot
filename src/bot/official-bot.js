@@ -310,9 +310,13 @@ ${providersText}
     async handleScheduleCallback(chatId, userId, data) {
         const parts = data.split('_');
         const action = parts[1];
-        const providerId = parts[2];
         
         if (action === 'manage') {
+            // schedule_manage_provider_1751175564567
+            // 提取provider_id（从第3个部分开始重新组合）
+            const providerId = parts.slice(2).join('_');
+            console.log(`🔧 解析排班管理回调: action=${action}, providerId=${providerId}`);
+            
             // 使用ScheduleManager处理排班管理
             await this.scheduleManager.showProviderSchedule(chatId, userId, providerId);
         } else {
