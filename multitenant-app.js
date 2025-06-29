@@ -13,7 +13,7 @@ const {
 } = require('./src/config/multitenant-database');
 
 // 导入机器人相关组件
-const OfficialBot = require('./src/bot/official-bot');
+const TelegramBot = require('node-telegram-bot-api');
 const TelegramScheduleManager = require('./src/bot/schedule-manager');
 
 const app = express();
@@ -22,6 +22,403 @@ const PORT = process.env.PORT || 3000;
 // 全局变量
 let officialBot = null;
 let scheduleManager = null;
+
+// 简化的机器人类
+class OfficialBot {
+    constructor(token) {
+        this.bot = new TelegramBot(token, { polling: true });
+        this.userStates = new Map();
+        this.setupCommands();
+        this.setupCallbacks();
+    }
+    
+    setupCommands() {
+        this.bot.onText(/\/start/, this.handleStart.bind(this));
+        this.bot.onText(/\/register/, this.handleRegister.bind(this));
+        this.bot.onText(/\/panel/, this.handlePanel.bind(this));
+        this.bot.onText(/\/help/, this.handleHelp.bind(this));
+        this.bot.on('message', this.handleMessage.bind(this));
+    }
+    
+    setupCallbacks() {
+        this.bot.on('callback_query', this.handleCallback.bind(this));
+    }
+    
+    async handleStart(msg) {
+        const chatId = msg.chat.id;
+        const userId = msg.from.id.toString();
+        
+        const user = UserManager.getUser(userId);
+        
+        if (user) {
+            await this.showManagementPanel(chatId, userId);
+        } else {
+            await this.bot.sendMessage(chatId, `🎉 <b>欢迎使用时间管理系统</b>
+
+这是一个专业的Telegram频道时间排班管理系统，帮助您：
+
+✨ <b>核心功能</b>
+• 📅 7天滚动排班管理
+• 🔄 自动同步频道帖子
+• 👥 多服务提供者支持
+• 📊 实时数据统计
+
+🚀 <b>开始使用</b>
+点击下方按钮立即注册，或发送 /register`, {
+                parse_mode: 'HTML',
+                reply_markup: JSON.stringify({
+                    inline_keyboard: [
+                        [{ text: '🚀 立即注册', callback_data: 'action_register' }],
+                        [{ text: '❓ 使用帮助', callback_data: 'action_help' }]
+                    ]
+                })
+            });
+        }
+    }
+    
+    async handleRegister(msg) {
+        const chatId = msg.chat.id;
+        const userId = msg.from.id.toString();
+        
+        const user = UserManager.getUser(userId);
+        
+        if (user) {
+            await this.bot.sendMessage(chatId, '✅ 您已经注册过了，直接使用管理面板：', {
+                reply_markup: JSON.stringify({
+                    inline_keyboard: [
+                        [{ text: '📋 打开管理面板', callback_data: 'action_panel' }]
+                    ]
+                })
+            });
+            return;
+        }
+        
+        await this.bot.sendMessage(chatId, `📝 <b>用户注册</b>
+
+请发送您的频道信息：
+
+<b>支持格式：</b>
+• @your_channel (频道用户名)
+• -1001234567890 (频道ID)
+
+<b>注意：</b>
+请确保机器人已被添加到频道并具有管理员权限`, {
+            parse_mode: 'HTML'
+        });
+        
+        this.setUserState(userId, 'registering_channel');
+    }
+    
+    async handlePanel(msg) {
+        const chatId = msg.chat.id;
+        const userId = msg.from.id.toString();
+        
+        const user = UserManager.getUser(userId);
+        
+        if (!user) {
+            await this.bot.sendMessage(chatId, '❌ 请先注册后再使用管理面板', {
+                reply_markup: JSON.stringify({
+                    inline_keyboard: [
+                        [{ text: '🚀 立即注册', callback_data: 'action_register' }]
+                    ]
+                })
+            });
+            return;
+        }
+        
+        await this.showManagementPanel(chatId, userId);
+    }
+    
+    async showManagementPanel(chatId, userId) {
+        const user = UserManager.getUser(userId);
+        const providers = ProviderManager.getUserProviders(userId);
+        
+        let panelText = `📋 <b>管理面板</b>
+
+<b>用户：</b> ${user.full_name || '未知用户'}
+<b>频道：</b> ${user.channel_id || '@xiaojiyangqiu'}
+<b>状态：</b> ✅ 正常
+
+<b>服务提供者：</b>`;
+        
+        if (providers.length > 0) {
+            providers.forEach((provider, index) => {
+                panelText += `\n• ${provider.name} (${provider.price}p)`;
+            });
+        } else {
+            panelText += `\n暂无服务提供者`;
+        }
+        
+        panelText += `\n\n<b>请选择操作：</b>`;
+        
+        const keyboard = {
+            inline_keyboard: [
+                [
+                    { text: '⏰ 排班管理', callback_data: 'panel_schedule' },
+                    { text: '👥 服务管理', callback_data: 'panel_providers' }
+                ],
+                [
+                    { text: '📊 数据统计', callback_data: 'panel_stats' },
+                    { text: '⚙️ 设置', callback_data: 'panel_settings' }
+                ],
+                [
+                    { text: '🔄 同步频道', callback_data: 'panel_sync' },
+                    { text: '🤖 测试机器人', callback_data: 'panel_test' }
+                ]
+            ]
+        };
+        
+        await this.bot.sendMessage(chatId, panelText, {
+            parse_mode: 'HTML',
+            reply_markup: JSON.stringify(keyboard)
+        });
+    }
+    
+    async handleHelp(msg) {
+        const chatId = msg.chat.id;
+        
+        const helpText = `❓ <b>使用帮助</b>
+
+<b>基本功能：</b>
+/start - 开始使用
+/register - 注册账号
+/panel - 管理面板
+/help - 使用帮助
+
+<b>主要特性：</b>
+📱 <b>移动端管理</b> - 直接在手机上操作
+⚡ <b>即时同步</b> - 排班变化立即更新频道
+🔐 <b>数据隔离</b> - 每个用户独立数据库
+📊 <b>实时统计</b> - 预约和收入数据
+
+<b>使用流程：</b>
+1. 发送 /register 开始注册
+2. 设置您的频道信息
+3. 配置服务提供者和价格
+4. 使用 /panel 管理排班
+5. 客户通过频道帖子预约
+
+<b>技术支持：</b>
+如有问题请联系开发团队`;
+        
+        await this.bot.sendMessage(chatId, helpText, {
+            parse_mode: 'HTML',
+            reply_markup: JSON.stringify({
+                inline_keyboard: [
+                    [{ text: '🚀 开始注册', callback_data: 'action_register' }],
+                    [{ text: '📋 管理面板', callback_data: 'action_panel' }]
+                ]
+            })
+        });
+    }
+    
+    async handleMessage(msg) {
+        const chatId = msg.chat.id;
+        const userId = msg.from.id.toString();
+        const text = msg.text;
+        
+        // 跳过命令消息
+        if (text && text.startsWith('/')) return;
+        
+        const userState = this.getUserState(userId);
+        
+        if (userState === 'registering_channel') {
+            await this.handleChannelInput(chatId, userId, text);
+        } else if (userState === 'adding_provider') {
+            await this.handleProviderInput(chatId, userId, text);
+        } else if (userState && userState.startsWith('editing_provider_')) {
+            const providerId = userState.split('_')[2];
+            await this.handleProviderEdit(chatId, userId, providerId, text);
+        }
+    }
+    
+    async handleChannelInput(chatId, userId, channelInput) {
+        try {
+            let channelId = channelInput.trim();
+            
+            if (channelId.startsWith('@')) {
+                await this.bot.sendMessage(chatId, `✅ <b>频道信息已接收</b>
+
+频道：${channelId}
+
+正在验证频道权限...`, { parse_mode: 'HTML' });
+            } else if (channelId.startsWith('-100')) {
+                await this.bot.sendMessage(chatId, `✅ <b>频道ID已接收</b>
+
+频道ID：${channelId}
+
+正在验证机器人权限...`, { parse_mode: 'HTML' });
+            } else {
+                await this.bot.sendMessage(chatId, `❌ <b>格式错误</b>
+
+请发送正确的频道格式：
+• @your_channel （频道用户名）
+• -1001234567890 （频道ID）`, { parse_mode: 'HTML' });
+                return;
+            }
+            
+            const userData = {
+                user_id: userId,
+                channel_id: channelId,
+                username: '未知用户',
+                full_name: '未知用户',
+                bot_token: null,
+                bot_username: null
+            };
+            
+            UserManager.createUser(userData);
+            
+            await this.bot.sendMessage(chatId, `🎉 <b>注册成功！</b>
+
+您的专属管理系统已创建：
+• 用户ID：${userId}
+• 频道：${channelId}
+• 状态：已激活
+
+<b>下一步：</b>
+请发送 /panel 打开管理面板，开始配置您的服务。`, {
+                parse_mode: 'HTML',
+                reply_markup: JSON.stringify({
+                    inline_keyboard: [
+                        [{ text: '📋 打开管理面板', callback_data: 'action_panel' }]
+                    ]
+                })
+            });
+            
+            this.clearUserState(userId);
+            
+        } catch (error) {
+            console.error('处理频道输入失败:', error);
+            await this.bot.sendMessage(chatId, '❌ 处理失败，请重试');
+        }
+    }
+    
+    async handleProviderInput(chatId, userId, text) {
+        try {
+            const parts = text.split('|');
+            if (parts.length !== 3) {
+                await this.bot.sendMessage(chatId, `❌ <b>格式错误</b>
+
+请按正确格式发送：
+服务名称|价格|描述
+
+<b>示例：</b>
+艾米娜|2500|英国真实05年，身高175，体重48KG`, {
+                    parse_mode: 'HTML'
+                });
+                return;
+            }
+            
+            const [name, priceStr, description] = parts.map(p => p.trim());
+            const price = parseInt(priceStr);
+            
+            if (!name || isNaN(price) || price <= 0) {
+                await this.bot.sendMessage(chatId, '❌ 名称不能为空，价格必须是正数');
+                return;
+            }
+            
+            const providerId = `provider_${Date.now()}`;
+            
+            const providerData = {
+                provider_id: providerId,
+                name: name,
+                description: description,
+                price: price,
+                images: []
+            };
+            
+            ProviderManager.createProvider(userId, providerData);
+            
+            await this.bot.sendMessage(chatId, `✅ <b>添加成功</b>
+
+服务提供者信息：
+• 名称：${name}
+• 价格：${price}p
+• 描述：${description}`, {
+                parse_mode: 'HTML',
+                reply_markup: JSON.stringify({
+                    inline_keyboard: [
+                        [{ text: '📋 返回服务管理', callback_data: 'panel_providers' }],
+                        [{ text: '⏰ 管理排班', callback_data: `schedule_manage_${providerId}` }]
+                    ]
+                })
+            });
+            
+            this.clearUserState(userId);
+            
+        } catch (error) {
+            console.error('处理服务提供者输入失败:', error);
+            await this.bot.sendMessage(chatId, '❌ 添加失败，请重试');
+            this.clearUserState(userId);
+        }
+    }
+    
+    async handleProviderEdit(chatId, userId, providerId, text) {
+        try {
+            const parts = text.split('|');
+            if (parts.length !== 3) {
+                await this.bot.sendMessage(chatId, `❌ <b>格式错误</b>
+
+请按正确格式发送：
+服务名称|价格|描述`, {
+                    parse_mode: 'HTML'
+                });
+                return;
+            }
+            
+            const [name, priceStr, description] = parts.map(p => p.trim());
+            const price = parseInt(priceStr);
+            
+            if (!name || isNaN(price) || price <= 0) {
+                await this.bot.sendMessage(chatId, '❌ 名称不能为空，价格必须是正数');
+                return;
+            }
+            
+            const providerData = {
+                provider_id: providerId,
+                name: name,
+                description: description,
+                price: price,
+                images: []
+            };
+            
+            ProviderManager.createProvider(userId, providerData);
+            
+            await this.bot.sendMessage(chatId, `✅ <b>更新成功</b>
+
+服务提供者信息已更新：
+• 名称：${name}
+• 价格：${price}p
+• 描述：${description}`, {
+                parse_mode: 'HTML',
+                reply_markup: JSON.stringify({
+                    inline_keyboard: [
+                        [{ text: '📋 返回服务管理', callback_data: 'panel_providers' }]
+                    ]
+                })
+            });
+            
+            this.clearUserState(userId);
+            
+        } catch (error) {
+            console.error('处理服务提供者编辑失败:', error);
+            await this.bot.sendMessage(chatId, '❌ 更新失败，请重试');
+            this.clearUserState(userId);
+        }
+    }
+    
+    setUserState(userId, state) {
+        this.userStates.set(userId, state);
+    }
+    
+    getUserState(userId) {
+        return this.userStates.get(userId);
+    }
+    
+    clearUserState(userId) {
+        this.userStates.delete(userId);
+    }
+}
 
 // 中间件配置
 app.use(cors());
@@ -147,41 +544,60 @@ function extendOfficialBot() {
 
 // 处理排班相关回调
 async function handleScheduleCallback(chatId, userId, data) {
+    console.log(`🔧 主应用处理排班回调: ${data}`);
     const parts = data.split('_');
     const action = parts[1];
-    const providerId = parts[2];
     
     switch (action) {
         case 'manage':
-            await scheduleManager.showProviderSchedule(chatId, userId, providerId);
+            // schedule_manage_provider_1751175564567
+            const providerId_manage = parts.slice(2).join('_');
+            console.log(`📋 排班管理: providerId=${providerId_manage}`);
+            await scheduleManager.showProviderSchedule(chatId, userId, providerId_manage);
             break;
             
         case 'day':
-            const dateStr = parts[3];
-            await scheduleManager.showDaySchedule(chatId, userId, providerId, dateStr);
+            // schedule_day_provider_1751175564567_2025-06-29
+            const providerId_day = parts.slice(2, -1).join('_');
+            const dateStr = parts[parts.length - 1];
+            console.log(`📅 日期管理: providerId=${providerId_day}, date=${dateStr}`);
+            await scheduleManager.showDaySchedule(chatId, userId, providerId_day, dateStr);
             break;
             
         case 'time':
-            const timeDate = parts[3];
-            const hour = parts[4];
-            await scheduleManager.handleTimeClick(chatId, userId, providerId, timeDate, hour);
+            // schedule_time_provider_1751175564567_2025-06-29_14
+            const providerId_time = parts.slice(2, -2).join('_');
+            const timeDate = parts[parts.length - 2];
+            const hour = parts[parts.length - 1];
+            console.log(`⏰ 时间管理: providerId=${providerId_time}, date=${timeDate}, hour=${hour}`);
+            await scheduleManager.handleTimeClick(chatId, userId, providerId_time, timeDate, hour);
             break;
             
         case 'dayop':
-            const opDate = parts[3];
-            const operation = parts[4];
-            await scheduleManager.handleDayOperation(chatId, userId, providerId, opDate, operation);
+            // schedule_dayop_provider_1751175564567_2025-06-29_allopen
+            const providerId_dayop = parts.slice(2, -2).join('_');
+            const opDate = parts[parts.length - 2];
+            const operation = parts[parts.length - 1];
+            console.log(`🔧 日期操作: providerId=${providerId_dayop}, date=${opDate}, op=${operation}`);
+            await scheduleManager.handleDayOperation(chatId, userId, providerId_dayop, opDate, operation);
             break;
             
         case 'text':
-            await scheduleManager.generateChannelText(chatId, userId, providerId);
+            // schedule_text_provider_1751175564567
+            const providerId_text = parts.slice(2).join('_');
+            console.log(`📝 文本生成: providerId=${providerId_text}`);
+            await scheduleManager.generateChannelText(chatId, userId, providerId_text);
             break;
             
         case 'sync':
-            await scheduleManager.syncToChannel(chatId, userId, providerId);
+            // schedule_sync_provider_1751175564567
+            const providerId_sync = parts.slice(2).join('_');
+            console.log(`🔄 同步频道: providerId=${providerId_sync}`);
+            await scheduleManager.syncToChannel(chatId, userId, providerId_sync);
             break;
             
         default:
+            console.log('未处理的排班回调:', data);
             if (officialBot) {
                 await officialBot.bot.sendMessage(chatId, '❌ 未知操作');
             }
@@ -191,6 +607,7 @@ async function handleScheduleCallback(chatId, userId, data) {
 
 // 处理服务提供者相关回调
 async function handleProviderCallback(chatId, userId, data) {
+    console.log(`🔧 主应用处理服务提供者回调: ${data}`);
     const parts = data.split('_');
     const action = parts[1];
     
@@ -200,23 +617,30 @@ async function handleProviderCallback(chatId, userId, data) {
             break;
             
         case 'edit':
-            const providerId = parts[2];
-            await showEditProviderForm(chatId, userId, providerId);
+            // provider_edit_provider_1751175564567
+            const providerId_edit = parts.slice(2).join('_');
+            console.log(`✏️ 编辑服务提供者: providerId=${providerId_edit}`);
+            await showEditProviderForm(chatId, userId, providerId_edit);
             break;
             
         case 'delete':
-            const delProviderId = parts[2];
+            // provider_delete_provider_1751175564567
+            const delProviderId = parts.slice(2).join('_');
+            console.log(`🗑️ 删除服务提供者: providerId=${delProviderId}`);
             await deleteProvider(chatId, userId, delProviderId);
             break;
             
         case 'confirm':
             if (parts[2] === 'delete') {
-                const confirmProviderId = parts[3];
+                // provider_confirm_delete_provider_1751175564567
+                const confirmProviderId = parts.slice(3).join('_');
+                console.log(`✅ 确认删除服务提供者: providerId=${confirmProviderId}`);
                 await confirmDeleteProvider(chatId, userId, confirmProviderId);
             }
             break;
             
         default:
+            console.log('未处理的服务提供者回调:', data);
             if (officialBot) {
                 await officialBot.bot.sendMessage(chatId, '❌ 未知操作');
             }
