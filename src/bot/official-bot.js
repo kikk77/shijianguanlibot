@@ -50,8 +50,7 @@ class OfficialBot {
         const username = msg.from.username || '';
         const fullName = `${msg.from.first_name || ''} ${msg.from.last_name || ''}`.trim();
         
-        const welcomeText = `
-🎉 *欢迎使用Telegram频道管理机器人！*
+        const welcomeText = `🎉 *欢迎使用Telegram频道管理机器人！*
 
 我是官方管理机器人，可以帮助您：
 
@@ -66,8 +65,7 @@ class OfficialBot {
 3️⃣ 发送 /panel 打开管理面板
 4️⃣ 直接在机器人内管理您的排班
 
-👇 点击下方按钮开始使用
-        `;
+👇 点击下方按钮开始使用`;
         
         const keyboard = {
             inline_keyboard: [
@@ -101,14 +99,16 @@ class OfficialBot {
             console.log(`📊 用户查询结果:`, existingUser);
             
             if (existingUser) {
-                await this.bot.sendMessage(chatId, `
-✅ *您已经注册过了！*
+                const statusText = existingUser.status === 'active' ? '正常' : '未激活';
+                const createdDate = existingUser.created_at ? 
+                    new Date(existingUser.created_at).toLocaleDateString('zh-CN') : '未知';
+                
+                await this.bot.sendMessage(chatId, `✅ *您已经注册过了！*
 
-当前状态：${existingUser.status === 'active' ? '正常' : '未激活'}
-注册时间：${new Date(existingUser.created_at).toLocaleString('zh-CN')}
+当前状态：${statusText}
+注册时间：${createdDate}
 
-直接发送 /panel 打开管理面板，或点击下方按钮：
-                `, {
+直接发送 /panel 打开管理面板，或点击下方按钮：`, {
                     parse_mode: 'Markdown',
                     reply_markup: JSON.stringify({
                         inline_keyboard: [
@@ -120,8 +120,7 @@ class OfficialBot {
             }
             
             // 开始注册流程
-            await this.bot.sendMessage(chatId, `
-🔧 *开始注册流程*
+            await this.bot.sendMessage(chatId, `🔧 *开始注册流程*
 
 请按以下步骤完成注册：
 
@@ -135,8 +134,7 @@ class OfficialBot {
 *第3步：服务配置*
 配置您的服务提供者信息
 
-请先发送您的频道信息 👇
-            `, {
+请先发送您的频道信息 👇`, {
                 parse_mode: 'Markdown'
             });
             
@@ -180,21 +178,23 @@ class OfficialBot {
         const user = UserManager.getUser(userId);
         const providers = ProviderManager.getUserProviders(userId);
         
-        let panelText = `
-📋 *管理面板*
+        const userName = user.full_name || user.username || '未知用户';
+        const channelInfo = user.channel_id || '未设置';
+        const statusText = user.status === 'active' ? '✅ 正常' : '❌ 未激活';
+        const providersText = providers.length > 0 ? 
+            providers.map(p => `• ${p.name} (${p.price}p)`).join('\n') : 
+            '暂无服务提供者';
+        
+        let panelText = `📋 *管理面板*
 
-用户：${user.full_name || user.username}
-频道：${user.channel_id || '未设置'}
-状态：${user.status === 'active' ? '✅ 正常' : '❌ 未激活'}
+用户：${userName}
+频道：${channelInfo}
+状态：${statusText}
 
 *服务提供者：*
-${providers.length > 0 ? 
-    providers.map(p => `• ${p.name} (${p.price}p)`).join('\n') : 
-    '暂无服务提供者'
-}
+${providersText}
 
-请选择操作：
-        `;
+请选择操作：`;
         
         const keyboard = {
             inline_keyboard: [
@@ -270,11 +270,9 @@ ${providers.length > 0 ?
         const providers = ProviderManager.getUserProviders(userId);
         
         if (providers.length === 0) {
-            await this.bot.sendMessage(chatId, `
-❌ *暂无服务提供者*
+            await this.bot.sendMessage(chatId, `❌ *暂无服务提供者*
 
-请先添加服务提供者才能管理排班。
-            `, {
+请先添加服务提供者才能管理排班。`, {
                 parse_mode: 'Markdown',
                 reply_markup: JSON.stringify({
                     inline_keyboard: [
@@ -295,11 +293,9 @@ ${providers.length > 0 ?
             ]
         };
         
-        await this.bot.sendMessage(chatId, `
-⏰ *排班管理*
+        await this.bot.sendMessage(chatId, `⏰ *排班管理*
 
-选择要管理的服务提供者：
-        `, {
+选择要管理的服务提供者：`, {
             parse_mode: 'Markdown',
             reply_markup: JSON.stringify(keyboard)
         });
@@ -331,8 +327,7 @@ ${providers.length > 0 ?
             dates.push(date);
         }
         
-        let scheduleText = `
-⏰ *${provider.name} - 排班管理*
+        let scheduleText = `⏰ *${provider.name} - 排班管理*
 
 📅 未来7天排班：
 
@@ -401,30 +396,24 @@ ${providers.length > 0 ?
             
             if (channelId.startsWith('@')) {
                 // 用户名格式，需要获取实际ID
-                await this.bot.sendMessage(chatId, `
-✅ *频道信息已接收*
+                await this.bot.sendMessage(chatId, `✅ *频道信息已接收*
 
 频道：${channelId}
 
-正在验证频道权限...
-                `, { parse_mode: 'Markdown' });
+正在验证频道权限...`, { parse_mode: 'Markdown' });
             } else if (channelId.startsWith('-100')) {
                 // 数字ID格式
-                await this.bot.sendMessage(chatId, `
-✅ *频道ID已接收*
+                await this.bot.sendMessage(chatId, `✅ *频道ID已接收*
 
 频道ID：${channelId}
 
-正在验证机器人权限...
-                `, { parse_mode: 'Markdown' });
+正在验证机器人权限...`, { parse_mode: 'Markdown' });
             } else {
-                await this.bot.sendMessage(chatId, `
-❌ *格式错误*
+                await this.bot.sendMessage(chatId, `❌ *格式错误*
 
 请发送正确的频道格式：
 • @your_channel （频道用户名）
-• -1001234567890 （频道ID）
-                `, { parse_mode: 'Markdown' });
+• -1001234567890 （频道ID）`, { parse_mode: 'Markdown' });
                 return;
             }
             
@@ -440,8 +429,7 @@ ${providers.length > 0 ?
             
             UserManager.createUser(userData);
             
-            await this.bot.sendMessage(chatId, `
-🎉 *注册成功！*
+            await this.bot.sendMessage(chatId, `🎉 *注册成功！*
 
 您的专属管理系统已创建：
 • 用户ID：${userId}
@@ -449,8 +437,7 @@ ${providers.length > 0 ?
 • 状态：已激活
 
 *下一步：*
-请发送 /panel 打开管理面板，开始配置您的服务。
-            `, {
+请发送 /panel 打开管理面板，开始配置您的服务。`, {
                 parse_mode: 'Markdown',
                 reply_markup: JSON.stringify({
                     inline_keyboard: [
@@ -470,8 +457,7 @@ ${providers.length > 0 ?
     async handleHelp(msg) {
         const chatId = msg.chat.id;
         
-        const helpText = `
-❓ *使用帮助*
+        const helpText = `❓ *使用帮助*
 
 *基本功能：*
 /start - 开始使用
@@ -493,8 +479,7 @@ ${providers.length > 0 ?
 5. 客户通过频道帖子预约
 
 *技术支持：*
-如有问题请联系开发团队
-        `;
+如有问题请联系开发团队`;
         
         await this.bot.sendMessage(chatId, helpText, {
             parse_mode: 'Markdown',
