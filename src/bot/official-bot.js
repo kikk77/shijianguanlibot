@@ -313,75 +313,15 @@ ${providersText}
         const providerId = parts[2];
         
         if (action === 'manage') {
-            await this.showProviderSchedule(chatId, userId, providerId);
+            // 使用ScheduleManager处理排班管理
+            await this.scheduleManager.showProviderSchedule(chatId, userId, providerId);
+        } else {
+            // 将其他排班相关回调转发给ScheduleManager
+            await this.scheduleManager.handleCallback(chatId, userId, data);
         }
     }
     
-    async showProviderSchedule(chatId, userId, providerId) {
-        const provider = ProviderManager.getProvider(userId, providerId);
-        if (!provider) {
-            await this.bot.sendMessage(chatId, '❌ 服务提供者不存在');
-            return;
-        }
-        
-        // 生成未来7天的排班界面
-        const today = new Date();
-        const dates = [];
-        for (let i = 0; i < 7; i++) {
-            const date = new Date(today);
-            date.setDate(today.getDate() + i);
-            dates.push(date);
-        }
-        
-        let scheduleText = `⏰ <b>${provider.name} - 排班管理</b>
 
-📅 未来7天排班：
-
-`;
-        
-        const keyboard = { inline_keyboard: [] };
-        
-        for (const date of dates) {
-            const dateStr = date.toISOString().split('T')[0];
-            const weekday = ['日', '一', '二', '三', '四', '五', '六'][date.getDay()];
-            const dayStr = `${date.getMonth() + 1}/${date.getDate()}(${weekday})`;
-            
-            scheduleText += `\n<b>${dayStr}</b>\n`;
-            
-            // 添加日期行按钮
-            const dayButtons = [];
-            dayButtons.push({ text: `📅 ${dayStr}`, callback_data: `schedule_day_${providerId}_${dateStr}` });
-            keyboard.inline_keyboard.push(dayButtons);
-            
-            // 添加时间段按钮 (10:00-22:00)
-            const timeButtons = [];
-            for (let hour = 10; hour <= 22; hour++) {
-                timeButtons.push({
-                    text: `${hour}`,
-                    callback_data: `schedule_time_${providerId}_${dateStr}_${hour}`
-                });
-                
-                if ((hour - 10 + 1) % 4 === 0) {
-                    keyboard.inline_keyboard.push([...timeButtons]);
-                    timeButtons.length = 0;
-                }
-            }
-            
-            if (timeButtons.length > 0) {
-                keyboard.inline_keyboard.push(timeButtons);
-            }
-        }
-        
-        keyboard.inline_keyboard.push([
-            { text: '🔄 同步频道', callback_data: `schedule_sync_${providerId}` },
-            { text: '⬅️ 返回', callback_data: 'panel_schedule' }
-        ]);
-        
-        await this.bot.sendMessage(chatId, scheduleText, {
-            parse_mode: 'HTML',
-            reply_markup: JSON.stringify(keyboard)
-        });
-    }
     
     async handleMessage(msg) {
         const chatId = msg.chat.id;

@@ -208,20 +208,26 @@ class ProviderManager {
     }
     
     static getUserProviders(userId) {
+        console.log(`🔍 查找用户服务提供者: userId=${userId}`);
         const stmt = db.prepare(`
             SELECT * FROM user_providers 
             WHERE user_id = ? AND status = 'active'
             ORDER BY name
         `);
-        return stmt.all(userId);
+        const result = stmt.all(userId);
+        console.log(`📊 找到 ${result.length} 个服务提供者:`, result);
+        return result;
     }
     
     static getProvider(userId, providerId) {
+        console.log(`🔍 查找服务提供者: userId=${userId}, providerId=${providerId}`);
         const stmt = db.prepare(`
             SELECT * FROM user_providers 
             WHERE user_id = ? AND provider_id = ?
         `);
-        return stmt.get(userId, providerId);
+        const result = stmt.get(userId, providerId);
+        console.log(`📊 查询结果:`, result);
+        return result;
     }
 }
 

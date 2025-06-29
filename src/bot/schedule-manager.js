@@ -435,6 +435,63 @@ class TelegramScheduleManager {
                 return `🟦${baseText}`;
         }
     }
+    
+    // 处理所有排班相关回调
+    async handleCallback(chatId, userId, data) {
+        try {
+            const parts = data.split('_');
+            const action = parts[1];
+            const providerId = parts[2];
+            
+            switch (action) {
+                case 'day':
+                    // schedule_day_providerId_dateStr
+                    const dateStr = parts[3];
+                    await this.showDaySchedule(chatId, userId, providerId, dateStr);
+                    break;
+                    
+                case 'time':
+                    // schedule_time_providerId_dateStr_hour
+                    const timeDate = parts[3];
+                    const hour = parts[4];
+                    await this.handleTimeClick(chatId, userId, providerId, timeDate, hour);
+                    break;
+                    
+                case 'dayop':
+                    // schedule_dayop_providerId_dateStr_operation
+                    const opDate = parts[3];
+                    const operation = parts[4];
+                    await this.handleDayOperation(chatId, userId, providerId, opDate, operation);
+                    break;
+                    
+                case 'text':
+                    // schedule_text_providerId
+                    await this.generateChannelText(chatId, userId, providerId);
+                    break;
+                    
+                case 'sync':
+                    // schedule_sync_providerId
+                    await this.syncToChannel(chatId, userId, providerId);
+                    break;
+                    
+                case 'copy':
+                    // schedule_copy_providerId
+                    await this.bot.answerCallbackQuery(chatId, {
+                        text: '📋 文本已复制到剪贴板',
+                        show_alert: false
+                    });
+                    break;
+                    
+                default:
+                    console.log('未处理的排班回调:', data);
+                    break;
+            }
+            
+        } catch (error) {
+            console.error('处理排班回调失败:', error);
+            await this.bot.sendMessage(chatId, '❌ 操作失败，请稍后重试');
+        }
+    }
 }
 
 module.exports = TelegramScheduleManager; 
