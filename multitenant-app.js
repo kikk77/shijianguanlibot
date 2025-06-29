@@ -221,16 +221,16 @@ async function handleProviderCallback(chatId, userId, data) {
 async function showProvidersPanel(chatId, userId) {
     const providers = ProviderManager.getUserProviders(userId);
     
-    let panelText = `👥 *服务提供者管理*\n\n`;
+    let panelText = `👥 <b>服务提供者管理</b>\n\n`;
     
     if (providers.length === 0) {
         panelText += `暂无服务提供者\n\n请添加第一个服务提供者：`;
     } else {
-        panelText += `*当前服务：*\n`;
+        panelText += `<b>当前服务：</b>\n`;
         providers.forEach((provider, index) => {
             panelText += `${index + 1}. ${provider.name} - ${provider.price}p\n`;
         });
-        panelText += `\n*管理选项：*`;
+        panelText += `\n<b>管理选项：</b>`;
     }
     
     const keyboard = { inline_keyboard: [] };
@@ -256,7 +256,7 @@ async function showProvidersPanel(chatId, userId) {
     
     if (officialBot) {
         await officialBot.bot.sendMessage(chatId, panelText, {
-            parse_mode: 'Markdown',
+            parse_mode: 'HTML',
             reply_markup: JSON.stringify(keyboard)
         });
     }

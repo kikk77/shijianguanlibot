@@ -30,7 +30,7 @@ class TelegramScheduleManager {
             });
             
             // 构建消息文本
-            let scheduleText = `⏰ *${provider.name} - 排班管理*\n\n`;
+            let scheduleText = `⏰ <b>${provider.name} - 排班管理</b>\n\n`;
             
             // 显示每天的状态概览
             for (const date of dates) {
@@ -43,7 +43,7 @@ class TelegramScheduleManager {
                 scheduleText += `${dayStr}: ${dayStatus}\n`;
             }
             
-            scheduleText += `\n*操作说明：*\n蓝色=可预约 | 灰色=已满 | 🚫=休息\n\n*点击日期管理当天排班* 👇`;
+            scheduleText += `\n<b>操作说明：</b>\n蓝色=可预约 | 灰色=已满 | 🚫=休息\n\n<b>点击日期管理当天排班</b> 👇`;
             
             // 构建内联键盘
             const keyboard = { inline_keyboard: [] };
@@ -76,7 +76,7 @@ class TelegramScheduleManager {
             ]);
             
             await this.bot.sendMessage(chatId, scheduleText, {
-                parse_mode: 'Markdown',
+                parse_mode: 'HTML',
                 reply_markup: JSON.stringify(keyboard)
             });
             
@@ -106,7 +106,7 @@ class TelegramScheduleManager {
                 scheduleMap.set(schedule.hour, schedule.status);
             });
             
-            let scheduleText = `⏰ *${provider.name} - ${dayStr}*\n\n`;
+            let scheduleText = `⏰ <b>${provider.name} - ${dayStr}</b>\n\n`;
             
             // 构建内联键盘
             const keyboard = { inline_keyboard: [] };
@@ -158,14 +158,14 @@ class TelegramScheduleManager {
             const restCount = Array.from({length: 13}, (_, i) => i + 10)
                 .filter(hour => scheduleMap.get(hour) === 'rest').length;
             
-            scheduleText += `*当天状态：*\n`;
+            scheduleText += `<b>当天状态：</b>\n`;
             scheduleText += `🟦 可预约：${openCount}个时段\n`;
             scheduleText += `🟨 已满：${fullCount}个时段\n`;
             scheduleText += `🟥 休息：${restCount}个时段\n\n`;
-            scheduleText += `*点击时间段切换状态* 👇`;
+            scheduleText += `<b>点击时间段切换状态</b> 👇`;
             
             await this.bot.sendMessage(chatId, scheduleText, {
-                parse_mode: 'Markdown',
+                parse_mode: 'HTML',
                 reply_markup: JSON.stringify(keyboard)
             });
             
@@ -333,16 +333,12 @@ class TelegramScheduleManager {
                 ]
             };
             
-            await this.bot.sendMessage(chatId, `
-📝 *频道发布文本预览*
+            await this.bot.sendMessage(chatId, `📝 <b>频道发布文本预览</b>
 
-\`\`\`
-${channelText}
-\`\`\`
+<pre>${channelText}</pre>
 
-*操作选项：*
-            `, {
-                parse_mode: 'Markdown',
+<b>操作选项：</b>`, {
+                parse_mode: 'HTML',
                 reply_markup: JSON.stringify(keyboard)
             });
             
@@ -363,15 +359,13 @@ ${channelText}
             
             // 这里应该调用频道更新API
             // 暂时模拟
-            await this.bot.sendMessage(chatId, `
-🔄 *正在同步到频道...*
+            await this.bot.sendMessage(chatId, `🔄 <b>正在同步到频道...</b>
 
 频道：${user.channel_id}
 服务：${providerId}
 
-✅ 同步成功！频道帖子已更新。
-            `, {
-                parse_mode: 'Markdown'
+✅ 同步成功！频道帖子已更新。`, {
+                parse_mode: 'HTML'
             });
             
         } catch (error) {

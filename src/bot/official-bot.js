@@ -50,16 +50,16 @@ class OfficialBot {
         const username = msg.from.username || '';
         const fullName = `${msg.from.first_name || ''} ${msg.from.last_name || ''}`.trim();
         
-        const welcomeText = `🎉 *欢迎使用Telegram频道管理机器人！*
+        const welcomeText = `🎉 <b>欢迎使用Telegram频道管理机器人！</b>
 
 我是官方管理机器人，可以帮助您：
 
-📱 *快速注册* - 自动创建您的专属管理系统
-⚙️ *管理面板* - 直接在机器人内操作排班
-📊 *数据统计* - 实时查看预约和收入情况
-🔄 *自动同步* - 排班变化立即更新频道帖子
+📱 <b>快速注册</b> - 自动创建您的专属管理系统
+⚙️ <b>管理面板</b> - 直接在机器人内操作排班
+📊 <b>数据统计</b> - 实时查看预约和收入情况
+🔄 <b>自动同步</b> - 排班变化立即更新频道帖子
 
-*使用步骤：*
+<b>使用步骤：</b>
 1️⃣ 发送 /register 开始注册
 2️⃣ 按提示配置您的频道和服务信息
 3️⃣ 发送 /panel 打开管理面板
@@ -81,7 +81,7 @@ class OfficialBot {
         };
         
         await this.bot.sendMessage(chatId, welcomeText, {
-            parse_mode: 'Markdown',
+            parse_mode: 'HTML',
             reply_markup: JSON.stringify(keyboard)
         });
     }
@@ -103,13 +103,13 @@ class OfficialBot {
                 const createdDate = existingUser.created_at ? 
                     new Date(existingUser.created_at).toLocaleDateString('zh-CN') : '未知';
                 
-                await this.bot.sendMessage(chatId, `✅ *您已经注册过了！*
+                await this.bot.sendMessage(chatId, `✅ <b>您已经注册过了！</b>
 
 当前状态：${statusText}
 注册时间：${createdDate}
 
 直接发送 /panel 打开管理面板，或点击下方按钮：`, {
-                    parse_mode: 'Markdown',
+                    parse_mode: 'HTML',
                     reply_markup: JSON.stringify({
                         inline_keyboard: [
                             [{ text: '📋 打开管理面板', callback_data: 'action_panel' }]
@@ -120,22 +120,22 @@ class OfficialBot {
             }
             
             // 开始注册流程
-            await this.bot.sendMessage(chatId, `🔧 *开始注册流程*
+            await this.bot.sendMessage(chatId, `🔧 <b>开始注册流程</b>
 
 请按以下步骤完成注册：
 
-*第1步：频道设置*
+<b>第1步：频道设置</b>
 请发送您的频道链接或频道ID
 格式：@your_channel 或 -1001234567890
 
-*第2步：机器人设置*
+<b>第2步：机器人设置</b>
 我将帮您生成专属的管理机器人
 
-*第3步：服务配置*
+<b>第3步：服务配置</b>
 配置您的服务提供者信息
 
 请先发送您的频道信息 👇`, {
-                parse_mode: 'Markdown'
+                parse_mode: 'HTML'
             });
             
             // 标记用户状态为注册中
@@ -155,12 +155,10 @@ class OfficialBot {
         // 检查用户是否已注册
         const user = UserManager.getUser(userId);
         if (!user) {
-            await this.bot.sendMessage(chatId, `
-❌ *您尚未注册*
+            await this.bot.sendMessage(chatId, `❌ <b>您尚未注册</b>
 
-请先完成注册才能使用管理面板。
-            `, {
-                parse_mode: 'Markdown',
+请先完成注册才能使用管理面板。`, {
+                parse_mode: 'HTML',
                 reply_markup: JSON.stringify({
                     inline_keyboard: [
                         [{ text: '🚀 立即注册', callback_data: 'action_register' }]
@@ -185,13 +183,13 @@ class OfficialBot {
             providers.map(p => `• ${p.name} (${p.price}p)`).join('\n') : 
             '暂无服务提供者';
         
-        let panelText = `📋 *管理面板*
+        let panelText = `📋 <b>管理面板</b>
 
 用户：${userName}
 频道：${channelInfo}
 状态：${statusText}
 
-*服务提供者：*
+<b>服务提供者：</b>
 ${providersText}
 
 请选择操作：`;
@@ -214,7 +212,7 @@ ${providersText}
         };
         
         await this.bot.sendMessage(chatId, panelText, {
-            parse_mode: 'Markdown',
+            parse_mode: 'HTML',
             reply_markup: JSON.stringify(keyboard)
         });
     }
@@ -270,10 +268,10 @@ ${providersText}
         const providers = ProviderManager.getUserProviders(userId);
         
         if (providers.length === 0) {
-            await this.bot.sendMessage(chatId, `❌ *暂无服务提供者*
+            await this.bot.sendMessage(chatId, `❌ <b>暂无服务提供者</b>
 
 请先添加服务提供者才能管理排班。`, {
-                parse_mode: 'Markdown',
+                parse_mode: 'HTML',
                 reply_markup: JSON.stringify({
                     inline_keyboard: [
                         [{ text: '👥 添加服务提供者', callback_data: 'panel_providers' }],
@@ -293,10 +291,10 @@ ${providersText}
             ]
         };
         
-        await this.bot.sendMessage(chatId, `⏰ *排班管理*
+        await this.bot.sendMessage(chatId, `⏰ <b>排班管理</b>
 
 选择要管理的服务提供者：`, {
-            parse_mode: 'Markdown',
+            parse_mode: 'HTML',
             reply_markup: JSON.stringify(keyboard)
         });
     }
@@ -327,7 +325,7 @@ ${providersText}
             dates.push(date);
         }
         
-        let scheduleText = `⏰ *${provider.name} - 排班管理*
+        let scheduleText = `⏰ <b>${provider.name} - 排班管理</b>
 
 📅 未来7天排班：
 
@@ -340,7 +338,7 @@ ${providersText}
             const weekday = ['日', '一', '二', '三', '四', '五', '六'][date.getDay()];
             const dayStr = `${date.getMonth() + 1}/${date.getDate()}(${weekday})`;
             
-            scheduleText += `\n*${dayStr}*\n`;
+            scheduleText += `\n<b>${dayStr}</b>\n`;
             
             // 添加日期行按钮
             const dayButtons = [];
@@ -372,7 +370,7 @@ ${providersText}
         ]);
         
         await this.bot.sendMessage(chatId, scheduleText, {
-            parse_mode: 'Markdown',
+            parse_mode: 'HTML',
             reply_markup: JSON.stringify(keyboard)
         });
     }
@@ -396,24 +394,24 @@ ${providersText}
             
             if (channelId.startsWith('@')) {
                 // 用户名格式，需要获取实际ID
-                await this.bot.sendMessage(chatId, `✅ *频道信息已接收*
+                await this.bot.sendMessage(chatId, `✅ <b>频道信息已接收</b>
 
 频道：${channelId}
 
-正在验证频道权限...`, { parse_mode: 'Markdown' });
+正在验证频道权限...`, { parse_mode: 'HTML' });
             } else if (channelId.startsWith('-100')) {
                 // 数字ID格式
-                await this.bot.sendMessage(chatId, `✅ *频道ID已接收*
+                await this.bot.sendMessage(chatId, `✅ <b>频道ID已接收</b>
 
 频道ID：${channelId}
 
-正在验证机器人权限...`, { parse_mode: 'Markdown' });
+正在验证机器人权限...`, { parse_mode: 'HTML' });
             } else {
-                await this.bot.sendMessage(chatId, `❌ *格式错误*
+                await this.bot.sendMessage(chatId, `❌ <b>格式错误</b>
 
 请发送正确的频道格式：
 • @your_channel （频道用户名）
-• -1001234567890 （频道ID）`, { parse_mode: 'Markdown' });
+• -1001234567890 （频道ID）`, { parse_mode: 'HTML' });
                 return;
             }
             
@@ -429,16 +427,16 @@ ${providersText}
             
             UserManager.createUser(userData);
             
-            await this.bot.sendMessage(chatId, `🎉 *注册成功！*
+            await this.bot.sendMessage(chatId, `🎉 <b>注册成功！</b>
 
 您的专属管理系统已创建：
 • 用户ID：${userId}
 • 频道：${channelId}
 • 状态：已激活
 
-*下一步：*
+<b>下一步：</b>
 请发送 /panel 打开管理面板，开始配置您的服务。`, {
-                parse_mode: 'Markdown',
+                parse_mode: 'HTML',
                 reply_markup: JSON.stringify({
                     inline_keyboard: [
                         [{ text: '📋 打开管理面板', callback_data: 'action_panel' }]
@@ -457,32 +455,32 @@ ${providersText}
     async handleHelp(msg) {
         const chatId = msg.chat.id;
         
-        const helpText = `❓ *使用帮助*
+        const helpText = `❓ <b>使用帮助</b>
 
-*基本功能：*
+<b>基本功能：</b>
 /start - 开始使用
 /register - 注册账号
 /panel - 管理面板
 /help - 使用帮助
 
-*主要特性：*
-📱 *移动端管理* - 直接在手机上操作
-⚡ *即时同步* - 排班变化立即更新频道
-🔐 *数据隔离* - 每个用户独立数据库
-📊 *实时统计* - 预约和收入数据
+<b>主要特性：</b>
+📱 <b>移动端管理</b> - 直接在手机上操作
+⚡ <b>即时同步</b> - 排班变化立即更新频道
+🔐 <b>数据隔离</b> - 每个用户独立数据库
+📊 <b>实时统计</b> - 预约和收入数据
 
-*使用流程：*
+<b>使用流程：</b>
 1. 发送 /register 开始注册
 2. 设置您的频道信息
 3. 配置服务提供者和价格
 4. 使用 /panel 管理排班
 5. 客户通过频道帖子预约
 
-*技术支持：*
+<b>技术支持：</b>
 如有问题请联系开发团队`;
         
         await this.bot.sendMessage(chatId, helpText, {
-            parse_mode: 'Markdown',
+            parse_mode: 'HTML',
             reply_markup: JSON.stringify({
                 inline_keyboard: [
                     [{ text: '🚀 开始注册', callback_data: 'action_register' }],
