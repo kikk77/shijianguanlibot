@@ -209,11 +209,151 @@ async function handleProviderCallback(chatId, userId, data) {
             await deleteProvider(chatId, userId, delProviderId);
             break;
             
+        case 'confirm':
+            if (parts[2] === 'delete') {
+                const confirmProviderId = parts[3];
+                await confirmDeleteProvider(chatId, userId, confirmProviderId);
+            }
+            break;
+            
         default:
             if (officialBot) {
                 await officialBot.bot.sendMessage(chatId, '❌ 未知操作');
             }
             break;
+    }
+}
+
+// 显示添加服务提供者表单
+async function showAddProviderForm(chatId, userId) {
+    if (!officialBot) return;
+    
+    await officialBot.bot.sendMessage(chatId, `➕ <b>添加服务提供者</b>
+
+请发送服务提供者信息，格式如下：
+
+<b>格式：</b>
+服务名称|价格|描述
+
+<b>示例：</b>
+艾米娜|2500|英国真实05年，身高175，体重48KG
+
+请按格式发送信息：`, {
+        parse_mode: 'HTML',
+        reply_markup: JSON.stringify({
+            inline_keyboard: [
+                [{ text: '⬅️ 返回', callback_data: 'panel_providers' }]
+            ]
+        })
+    });
+    
+    // 设置用户状态为添加服务提供者
+    if (officialBot.setUserState) {
+        officialBot.setUserState(userId, 'adding_provider');
+    }
+}
+
+// 显示编辑服务提供者表单
+async function showEditProviderForm(chatId, userId, providerId) {
+    if (!officialBot) return;
+    
+    const provider = ProviderManager.getProvider(userId, providerId);
+    if (!provider) {
+        await officialBot.bot.sendMessage(chatId, '❌ 服务提供者不存在');
+        return;
+    }
+    
+    await officialBot.bot.sendMessage(chatId, `✏️ <b>编辑服务提供者</b>
+
+<b>当前信息：</b>
+名称：${provider.name}
+价格：${provider.price}p
+描述：${provider.description || '无'}
+
+请发送新的信息，格式：
+服务名称|价格|描述
+
+或点击下方按钮：`, {
+        parse_mode: 'HTML',
+        reply_markup: JSON.stringify({
+            inline_keyboard: [
+                [{ text: '🗑️ 删除此服务', callback_data: `provider_delete_${providerId}` }],
+                [{ text: '⬅️ 返回', callback_data: 'panel_providers' }]
+            ]
+        })
+    });
+    
+    // 设置用户状态为编辑服务提供者
+    if (officialBot.setUserState) {
+        officialBot.setUserState(userId, `editing_provider_${providerId}`);
+    }
+}
+
+// 删除服务提供者
+async function deleteProvider(chatId, userId, providerId) {
+    if (!officialBot) return;
+    
+    const provider = ProviderManager.getProvider(userId, providerId);
+    if (!provider) {
+        await officialBot.bot.sendMessage(chatId, '❌ 服务提供者不存在');
+        return;
+    }
+    
+    await officialBot.bot.sendMessage(chatId, `🗑️ <b>确认删除</b>
+
+确定要删除服务提供者 "${provider.name}" 吗？
+
+⚠️ 此操作将同时删除相关的排班数据，且无法恢复！`, {
+        parse_mode: 'HTML',
+        reply_markup: JSON.stringify({
+            inline_keyboard: [
+                [
+                    { text: '✅ 确认删除', callback_data: `provider_confirm_delete_${providerId}` },
+                    { text: '❌ 取消', callback_data: 'panel_providers' }
+                ]
+            ]
+        })
+    });
+}
+
+// 确认删除服务提供者
+async function confirmDeleteProvider(chatId, userId, providerId) {
+    if (!officialBot) return;
+    
+    try {
+        const provider = ProviderManager.getProvider(userId, providerId);
+        if (!provider) {
+            await officialBot.bot.sendMessage(chatId, '❌ 服务提供者不存在');
+            return;
+        }
+        
+        // 删除相关排班数据
+        const db = require('./src/config/multitenant-database').getDatabase();
+        const deleteSchedules = db.prepare('DELETE FROM user_schedules WHERE user_id = ? AND provider_id = ?');
+        deleteSchedules.run(userId, providerId);
+        
+        // 删除预约数据
+        const deleteBookings = db.prepare('DELETE FROM user_bookings WHERE user_id = ? AND provider_id = ?');
+        deleteBookings.run(userId, providerId);
+        
+        // 删除服务提供者
+        const deleteProvider = db.prepare('DELETE FROM user_providers WHERE user_id = ? AND provider_id = ?');
+        deleteProvider.run(userId, providerId);
+        
+        await officialBot.bot.sendMessage(chatId, `✅ <b>删除成功</b>
+
+服务提供者 "${provider.name}" 及相关数据已删除。`, {
+            parse_mode: 'HTML',
+            reply_markup: JSON.stringify({
+                inline_keyboard: [
+                    [{ text: '📋 返回服务管理', callback_data: 'panel_providers' }]
+                ]
+            })
+        });
+        
+    } catch (error) {
+        console.error('删除服务提供者失败:', error);
+        await officialBot.bot.sendMessage(chatId, '❌ 删除失败，请稍后重试');
     }
 }
 
