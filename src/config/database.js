@@ -14,8 +14,8 @@ async function initDatabase() {
         try {
             console.log(`🔄 尝试初始化数据库 (第${attempt}次)...`);
             
-            // 优先使用 /app/data 路径 (Railway Volume)
-            let dbPath = process.env.DB_PATH || '/app/data/bot.db';
+            // 本地开发使用相对路径，生产环境使用 /app/data 路径
+            let dbPath = process.env.DB_PATH || (process.env.NODE_ENV === 'production' ? '/app/data/bot.db' : './data/bot.db');
             const dataDir = path.dirname(dbPath);
             
             console.log(`📁 尝试数据库路径: ${dbPath}`);
@@ -90,7 +90,7 @@ async function initDatabase() {
         // 初始化默认数据
         initDefaultData();
         
-        const finalDbPath = process.env.DB_PATH || '/app/data/bot.db';
+        const finalDbPath = process.env.DB_PATH || (process.env.NODE_ENV === 'production' ? '/app/data/bot.db' : './data/bot.db');
         console.log('✅ 数据库初始化完成:', finalDbPath);
         
     } catch (error) {
