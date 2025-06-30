@@ -304,6 +304,92 @@ const setupAdminAPI = (app) => {
             });
         }
     });
+
+    // 🗑️ 删除服务提供者API (需要管理员密码)
+    app.delete('/api/delete-provider', async (req, res) => {
+        try {
+            const { providerId, adminPassword } = req.body;
+            
+            if (!providerId || !adminPassword) {
+                return res.status(400).json({
+                    success: false,
+                    error: '缺少必需参数'
+                });
+            }
+            
+            // 验证管理员密码
+            const configAdminPassword = process.env.ADMIN_PASSWORD;
+            if (!configAdminPassword) {
+                return res.status(500).json({
+                    success: false,
+                    error: '系统未配置管理员密码'
+                });
+            }
+            
+            if (adminPassword !== configAdminPassword) {
+                console.log(`❌ 删除服务者失败: 管理员密码错误 - 提供者ID: ${providerId}`);
+                return res.status(403).json({
+                    success: false,
+                    error: '管理员密码错误'
+                });
+            }
+            
+            const db = getDatabase();
+            
+            // 获取服务者信息用于日志
+            const provider = db.prepare(`
+                SELECT name FROM providers WHERE id = ?
+            `).get(providerId);
+            
+            if (!provider) {
+                return res.status(404).json({
+                    success: false,
+                    error: '服务者不存在'
+                });
+            }
+            
+            // 开始事务删除相关数据
+            const deleteTransaction = db.transaction(() => {
+                // 1. 删除时间消息记录
+                db.prepare(`DELETE FROM time_messages WHERE provider_id = ?`).run(providerId);
+                
+                // 2. 删除排班数据
+                db.prepare(`DELETE FROM schedule_data WHERE provider_id = ?`).run(providerId);
+                
+                // 3. 删除时间段
+                db.prepare(`DELETE FROM time_slots WHERE provider_id = ?`).run(providerId);
+                
+                // 4. 删除预约记录
+                db.prepare(`DELETE FROM bookings WHERE provider_id = ?`).run(providerId);
+                
+                // 5. 删除频道帖子记录
+                db.prepare(`DELETE FROM channel_posts WHERE provider_id = ?`).run(providerId);
+                
+                // 6. 最后删除服务者
+                db.prepare(`DELETE FROM providers WHERE id = ?`).run(providerId);
+            });
+            
+            deleteTransaction();
+            
+            console.log(`✅ 删除服务者成功: ${provider.name} (ID: ${providerId}) - 管理员操作`);
+            
+            res.json({
+                success: true,
+                message: `服务者 "${provider.name}" 及相关数据已删除`,
+                deletedProvider: {
+                    id: providerId,
+                    name: provider.name
+                }
+            });
+            
+        } catch (error) {
+            console.error('❌ 删除服务者失败:', error);
+            res.status(500).json({
+                success: false,
+                error: error.message
+            });
+        }
+    });
 };
 
 // 生成时间信息内容

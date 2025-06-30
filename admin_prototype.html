@@ -958,9 +958,16 @@
             providers.forEach(provider => {
                 html += `
                     <div style="padding: 15px; border: 1px solid #e0e6ed; border-radius: 8px; margin-bottom: 10px; background: #f8f9fa;">
-                        <h4>👩‍💼 ${provider.name}</h4>
-                        <p>${provider.description || '暂无描述'}</p>
-                        <p><span class="status-badge" style="background: #d4edda; color: #155724;">${provider.status === 'active' ? '活跃' : '暂停'}</span></p>
+                        <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                            <div style="flex: 1;">
+                                <h4>👩‍💼 ${provider.name}</h4>
+                                <p>${provider.description || '暂无描述'}</p>
+                                <p><span class="status-badge" style="background: #d4edda; color: #155724; padding: 4px 8px; border-radius: 4px; font-size: 12px;">${provider.status === 'active' ? '活跃' : '暂停'}</span></p>
+                            </div>
+                            <div style="margin-left: 15px;">
+                                <button onclick="deleteProvider(${provider.id}, '${provider.name}')" class="btn btn-danger btn-small">🗑️ 删除</button>
+                            </div>
+                        </div>
                     </div>
                 `;
             });
@@ -1039,6 +1046,66 @@
                 
             } catch (error) {
                 showUpdateNotification(`❌ 添加服务者失败: ${error.message}`, 'error');
+            }
+        }
+
+        // 删除服务提供者
+        async function deleteProvider(providerId, providerName) {
+            // 确认删除
+            if (!confirm(`⚠️ 确定要删除服务者 "${providerName}" 吗？\n\n此操作将会：\n• 删除该服务者的所有排班数据\n• 删除相关的预约记录\n• 此操作不可撤销！\n\n请输入管理员密码确认删除`)) {
+                return;
+            }
+            
+            // 要求输入管理员密码
+            const adminPassword = prompt('🔐 请输入管理员密码：');
+            if (!adminPassword) {
+                showUpdateNotification('❌ 未输入管理员密码，操作已取消', 'error');
+                return;
+            }
+            
+            try {
+                showUpdateNotification('🔄 正在验证密码并删除服务者...', 'loading');
+                
+                const response = await fetch('/api/delete-provider', {
+                    method: 'DELETE',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${localStorage.getItem('adminToken') || 'admin-session'}`
+                    },
+                    body: JSON.stringify({
+                        providerId: providerId,
+                        adminPassword: adminPassword
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok && result.success) {
+                    // 重新加载服务提供者列表
+                    await loadProviders();
+                    
+                    // 如果当前选择的是被删除的服务者，清空排班表
+                    const select = document.getElementById('slotProvider');
+                    if (select.value == providerId) {
+                        select.value = '';
+                        scheduleData = {};
+                        document.querySelector('.weekly-schedule-container h3').textContent = '📅 请选择服务提供者';
+                        document.getElementById('scheduleList').innerHTML = `
+                            <div style="padding: 40px; text-align: center; color: #666;">
+                                <p>请选择服务提供者后，系统将加载7天排班表</p>
+                                <p>点击时间段按钮可以切换开放状态</p>
+                            </div>
+                        `;
+                        refreshTimePreview();
+                    }
+                    
+                    showUpdateNotification(`✅ 服务者 "${providerName}" 及相关数据已删除！`, 'success');
+                } else {
+                    throw new Error(result.error || '删除服务者失败');
+                }
+                
+            } catch (error) {
+                showUpdateNotification(`❌ 删除服务者失败: ${error.message}`, 'error');
             }
         }
 
